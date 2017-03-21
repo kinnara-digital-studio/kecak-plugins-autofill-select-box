@@ -15,6 +15,7 @@ public class Activator implements BundleActivator {
 
         //Register plugin here
         registrationList.add(context.registerService(AutofillSelectBox.class.getName(), new AutofillSelectBox(), null));
+        registrationList.add(context.registerService(AutofillFormBinder.class.getName(), new AutofillFormBinder(), null));
     }
 
     public void stop(BundleContext context) {

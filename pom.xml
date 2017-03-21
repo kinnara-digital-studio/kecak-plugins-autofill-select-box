@@ -4,7 +4,7 @@
     <groupId>com.kinnara</groupId>
     <artifactId>kecak-plugins-autofill-select-box</artifactId>
     <packaging>bundle</packaging>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <name>kecak-plugins-autofill-select-box</name>
     <url>http://www.kinnarastudio.com</url>
     <build>

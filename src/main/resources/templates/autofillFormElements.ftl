@@ -61,9 +61,11 @@
 			}
 			
 			var prefix = "${elementParamName!}${element.properties.elementUniqueKey!}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
-    		var bodyPost = JSON.stringify(${autofillLoadBinder!});
+			
+			$('#${elementParamName!}${element.properties.elementUniqueKey!}').ready(trigger_${elementParamName!}${element.properties.elementUniqueKey!});    		
+    		$('#${elementParamName!}${element.properties.elementUniqueKey!}').change(trigger_${elementParamName!}${element.properties.elementUniqueKey!});
     		
-    		$('#${elementParamName!}${element.properties.elementUniqueKey!}').change(function() {
+    		function trigger_${elementParamName!}${element.properties.elementUniqueKey!}() {
     			var primaryKey = $(this).val();
     			var url = "${request.contextPath}/web/json/plugin/${className}/service?${keyField}=" + primaryKey;
     			
@@ -71,13 +73,42 @@
 		            url: url,
 		            type : 'POST',
 		            headers : { 'Content-Type' : 'application/json' },
-		            data : bodyPost
+		            data : '{ autofillLoadBinder : ${autofillLoadBinder!}, autofillForm : ${autofillForm!}}'
 		        })
 				.done(function(data) {
 		         	for(var i in data) {
 				         <#list element.properties.autofillFields! as field>
-				    		$("[name$='" + prefix + "${field.formField!}']").val(data[i].${field.resultField!});
-				    		<#-- TODO : Supports for Radio button, select box, check box -->	
+				         	<#assign fieldType = fieldTypes[field.formField!]>
+				         	<#if fieldType == 'RADIOS' >
+			         			$("input[name$='" + prefix + "${field.formField!}']").each(function() {
+			         				$(this).prop('checked', $(this).val() == data[i].${field.resultField!});
+			         			});
+			         		<#elseif fieldType == 'CHECK_BOXES'>
+			         			$("input[name$='" + prefix + "${field.formField!}']").each(function() {
+			         				var multivalue = data[i].${field.resultField!}.split(/;/);
+			         				$(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
+			         			});
+			         		<#elseif fieldType == 'GRIDS'>			         			
+			         			$("div.grid[name$='" + prefix + "${field.formField!}']").each(function() {
+			         				<#-- remove previous grid row -->
+				         			$(this).find('tr.grid-row').each(function() {
+				         				$(this).remove();
+				         			});
+			         			
+			         				try {
+				         				var gridData = JSON.parse(data[i].${field.resultField!});
+				         				for(var j in gridData) {
+				         					formgrid_${field.formField!}_add({result : JSON.stringify(gridData[j])});
+				         				}
+				         			} catch (e) { }
+				         		});
+			         		<#else>
+			         			$("input[name$='" + prefix + "${field.formField!}']").each(function() {
+			    					$(this).val(data[i].${field.resultField!});
+			    				});
+			    			</#if>
+			         		
+				    		<#-- TODO : Supports for select box -->	
 				    	</#list>
 			    	}
 		        })
@@ -86,7 +117,7 @@
 			    		$("[name$='" + prefix + "${field.formField!}']").val("");	
 			    	</#list>
 		    	});
-    		});
+    		}
 		});
     </script>
 </div>

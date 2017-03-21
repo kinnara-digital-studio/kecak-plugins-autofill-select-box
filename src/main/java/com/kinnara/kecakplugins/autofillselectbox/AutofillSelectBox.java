@@ -17,13 +17,16 @@ import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;
 import org.joget.apps.app.service.AppUtil;
-import org.joget.apps.datalist.model.DataListBinderDefault;
-import org.joget.apps.datalist.model.DataListCollection;
-import org.joget.apps.datalist.model.DataListFilterQueryObject;
+import org.joget.apps.form.lib.CheckBox;
+import org.joget.apps.form.lib.Radio;
 import org.joget.apps.form.lib.SelectBox;
+import org.joget.apps.form.model.Element;
+import org.joget.apps.form.model.Form;
 import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.model.FormLoadBinder;
 import org.joget.apps.form.model.FormRow;
+import org.joget.apps.form.model.FormRowSet;
+import org.joget.apps.form.service.FormService;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
 import org.joget.commons.util.SecurityUtil;
@@ -33,39 +36,48 @@ import org.joget.plugin.property.model.PropertyEditable;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.context.ApplicationContext;
 
 public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
-
 	private final static String PARAMETER_ID = "id";
 	
 	public void webService(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 		
+		
 		if("POST".equals(request.getMethod())) {
+			ApplicationContext appContext = AppUtil.getApplicationContext();
+			
 			try {			
 				JSONObject body = constructRequestBody(request);
 				
-				PluginManager pluginManager = (PluginManager) AppUtil.getApplicationContext().getBean("pluginManager");
+				JSONObject autofillLoadBinder = body.getJSONObject("autofillLoadBinder");
+				JSONObject autofillForm = body.getJSONObject("autofillForm");
+						
+				PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
 				
 				// build enhancement-plugin
-				DataListBinderDefault loadBinder = (DataListBinderDefault) pluginManager.getPlugin(body.getString("className"));
+				Object loadBinder = pluginManager
+						.getPlugin(autofillLoadBinder.getString("className"));
 				
+				// build form
+				FormService formService = (FormService) appContext.getBean("formService");
+				Form form = (Form)formService.createElementFromJson(autofillForm.toString());
+								
 				if(loadBinder != null) {
-					Map<String, Object> binderProperties = jsonToMap(body.getJSONObject("properties"));
+					Map<String, Object> binderProperties = jsonToMap(autofillLoadBinder.getJSONObject("properties"));
 					
 					// set enhancement-plugin properties
-					if(binderProperties != null)
-						loadBinder.setProperties(binderProperties);
+					if(binderProperties != null) {
+						((PropertyEditable)loadBinder).setProperties(binderProperties);
+						form.setLoadBinder((FormLoadBinder)loadBinder);
+					}
 					
-					String primaryKey = request.getParameter(PARAMETER_ID);					
-					DataListFilterQueryObject filter = new DataListFilterQueryObject();
-					filter.setQuery(loadBinder.getPrimaryKeyColumnName() + " = ?");
-					filter.setOperator("AND");
-					filter.setValues(new String[] { primaryKey });
-					DataListFilterQueryObject[] filterQueryObjects = { filter };
-					DataListCollection data = loadBinder.getData(null, loadBinder.getProperties(), filterQueryObjects, null, null, null, 1);	
+					String primaryKey = request.getParameter(PARAMETER_ID);
+					JSONArray data = loadFormData(form, primaryKey);
+	
 					response.setStatus(HttpServletResponse.SC_OK);
-					response.getWriter().write(formRowSetToJson(data).toString());
+					response.getWriter().write(data.toString());
 				} else {
 					response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED);	
 				}
@@ -105,7 +117,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
         } else {
             selectForm = "{name:'selectForm',label:'Form',type:'textfield',required : 'True'}";
         }
-        return AppUtil.readPluginResource(getClass().getName(), "/properties/autofillFormElements.json", new String[]{selectForm, encryption}, true, "message/form/SelectBox");
+        return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillFormElements.json", new String[]{selectForm, encryption}, true, "message/form/SelectBox");
 	}
 
 	@Override
@@ -115,7 +127,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 
 	@Override
 	public String getVersion() {
-		return "1.0.0";
+		return "1.1.0";
 	}
 
 	@Override
@@ -130,7 +142,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 
 	@Override
 	public String renderTemplate(FormData formData, Map dataModel) {
-        String template = "autofillFormElements.ftl";
+        String template = "AutofillFormElements.ftl";
 
         dynamicOptions(formData);
 
@@ -146,9 +158,17 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
         dataModel.put("className", getClassName());
         dataModel.put("keyField", PARAMETER_ID);
         
+        Map<String, String> fieldTypes = new HashMap<String, String>();
+        getFieldTypes(FormUtil.findRootForm(this), fieldTypes);
+        dataModel.put("fieldTypes", fieldTypes);
+                
         try {
-			dataModel.put("autofillLoadBinder", FormUtil.generatePropertyJsonObject((Map<String, Object>)getProperty("autofillLoadBinder")));
-		} catch (JSONException e) {
+        	Map<String, Object> autofillLoadBinder = (Map<String, Object>)getProperty("autofillLoadBinder");
+        	if(autofillLoadBinder != null)
+        		dataModel.put("autofillLoadBinder", FormUtil.generatePropertyJsonObject(autofillLoadBinder));
+        	
+			dataModel.put("autofillForm", FormUtil.generateElementJson(FormUtil.findRootForm(this)));
+		} catch (Exception e) {
 			LogUtil.warn(getClassName(), "Load Binder properties error");
 			e.printStackTrace();
 		}
@@ -157,18 +177,35 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
         return html;
 	}
 	
-	private String getTableFromForm(String formDefId) {
-		// proceed without cache    	
-        AppDefinition appDef = AppUtil.getCurrentAppDefinition();
-        if (appDef != null && formDefId != null && !formDefId.isEmpty()) {
-            FormDefinitionDao formDefinitionDao = (FormDefinitionDao)AppUtil.getApplicationContext().getBean("formDefinitionDao");
-            FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
-            if (formDef != null) {
-            	return formDef.getTableName();
-            }
-        }
-        
-        return "";
+	private void getFieldTypes(Element element, Map<String, String> types) {
+		String id = element.getPropertyString(FormUtil.PROPERTY_ID);
+		
+		if(id != null && !id.isEmpty()) {
+			if(element instanceof CheckBox)
+				types.put(id, "CHECK_BOXES");
+			else if(element instanceof Radio)
+				types.put(id, "RADIOS");
+			else if(element.getClassName().matches(".+Grid$"))
+				types.put(id, "GRIDS");
+			else
+				types.put(id, "OTHERS");
+		}
+		
+		for(Element child : element.getChildren()) {
+			getFieldTypes(child, types);
+		}
+	}
+	
+	private JSONObject getFormJson(String formDefId) throws JSONException {
+		AppDefinition appDef = AppUtil.getCurrentAppDefinition();
+		ApplicationContext appContext = AppUtil.getApplicationContext();
+		if(appDef != null) {
+			FormDefinitionDao formDefinitionDao = (FormDefinitionDao)appContext.getBean("formDefinitionDao");
+			FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
+			return new JSONObject(formDef.getJson());
+		}
+		
+		return null;
 	}
 	
 	private JSONObject constructRequestBody(HttpServletRequest request) throws IOException, JSONException {
@@ -197,7 +234,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 		return result;
 	}
 	
-	private JSONArray formRowSetToJson(DataListCollection<FormRow> data) {
+	private JSONArray formRowSetToJson(FormRowSet data) {
 		JSONArray result = new JSONArray();
 		if(data != null) {		
 			for(FormRow row : data) {
@@ -206,7 +243,14 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 		}
 		return result;
 	}
-
-	interface AutofillLoadBinder extends FormLoadBinder, PropertyEditable {
+	
+	private JSONArray loadFormData(Form form, String primaryKey) {		
+		ApplicationContext appContext = AppUtil.getApplicationContext();
+		FormService formService = (FormService) appContext.getBean("formService");
+		FormData formData = new FormData();
+		formData.setPrimaryKeyValue(primaryKey);
+		formData = formService.executeFormLoadBinders(form, formData);
+		FormRowSet rowSet = formData.getLoadBinderData(form);		
+		return formRowSetToJson(rowSet);
 	}
 }
