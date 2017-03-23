@@ -22,7 +22,7 @@
                 <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if> <#if element.properties.readonly! == 'true'>disabled</#if>>${option.label!?html}</option>
             </#list>
         </select>
-        <img id="${elementId}_loading" src="${request.contextPath}/plugin/${className}/images/ellipsis.gif" height="25" width="25" style="vertical-align: middle; display: none;">
+        <img id="${elementId}_loading" src="${request.contextPath}/plugin/${className}/images/spin.gif" height="24" width="24" style="vertical-align: middle; display: none;">
     </#if>
     <#if element.properties.readonly! == 'true'>    
         <#list values as value>
