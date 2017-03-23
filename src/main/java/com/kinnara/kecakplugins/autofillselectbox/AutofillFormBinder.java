@@ -7,7 +7,6 @@ import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;
 import org.joget.apps.app.service.AppUtil;
-import org.joget.apps.form.lib.DefaultFormBinder;
 import org.joget.apps.form.model.Element;
 import org.joget.apps.form.model.Form;
 import org.joget.apps.form.model.FormBinder;
@@ -17,25 +16,27 @@ import org.joget.apps.form.model.FormRow;
 import org.joget.apps.form.model.FormRowSet;
 import org.joget.apps.form.service.FormService;
 import org.joget.apps.form.service.FormUtil;
-import org.joget.plugin.base.PluginManager;
+import org.joget.commons.util.LogUtil;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationContext;
 
+/**
+ * 
+ * @author aristo
+ *
+ */
 public class AutofillFormBinder extends FormBinder  implements FormLoadElementBinder {
 	private Map<String, Form> formCache = new HashMap<String, Form>();
 	
-	public FormRowSet load(Element element, String primaryKey, FormData formData) {
-		ApplicationContext appContext = AppUtil.getApplicationContext();
-		PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
-		
+	public FormRowSet load(Element element, String primaryKey, FormData formData) {			
+		FormRowSet rowSet = new FormRowSet();
 		Form form = generateForm(getPropertyString("formDefId"));
 		
-		// force to load form using Default Form Binder
-		DefaultFormBinder formBinder = (DefaultFormBinder)pluginManager.getPlugin(DefaultFormBinder.class.getName());
-		form.setLoadBinder(formBinder);
-		
-		FormRowSet rowSet = new FormRowSet();
-		rowSet.add(loadFormData(form, formData));
+		if(form != null) {
+			rowSet.add(loadFormData(form, formData));
+		} else {
+			LogUtil.warn(getClassName(), "Cannot generate form [" + getPropertyString("formDefId") + "]");
+		}
 		return rowSet;
 	}
 
@@ -104,11 +105,11 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 	}
 	
 	private void getElementData(Element element, FormData formData, FormRow result) {
-//		System.out.println("element class " + element.getClassName());
-//		System.out.println("result before");
-//		for(Map.Entry entry : result.entrySet()) {
-//			System.out.println(entry.getKey().toString() + "->" + entry.getValue().toString());
-//		}
+		System.out.println("element class " + element.getClassName());
+		System.out.println("result before");
+		for(Map.Entry entry : result.entrySet()) {
+			System.out.println(entry.getKey().toString() + "->" + entry.getValue().toString());
+		}
 		FormRowSet rowSet = formData.getLoadBinderData(element);
 		if(rowSet != null && !rowSet.isEmpty()) {
 			if(rowSet.isMultiRow()) {
@@ -117,15 +118,16 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 			} else {
 				FormRow row = rowSet.get(0);
 				for(Map.Entry entry : row.entrySet()) {
-					result.setProperty(entry.getKey().toString(), entry.getValue().toString());
+					if(!result.containsKey(entry.getKey()))
+						result.setProperty(entry.getKey().toString(), entry.getValue().toString());
 				}
 			}
 		}
 		
-//		System.out.println("result after");
-//		for(Map.Entry entry : result.entrySet()) {
-//			System.out.println(entry.getKey().toString() + "->" + entry.getValue().toString());
-//		}
+		System.out.println("result after");
+		for(Map.Entry entry : result.entrySet()) {
+			System.out.println(entry.getKey().toString() + "->" + entry.getValue().toString());
+		}
 		
 		if(element.getChildren() != null) {
 			for(Element child : element.getChildren()) {

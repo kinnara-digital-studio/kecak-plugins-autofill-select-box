@@ -38,6 +38,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.context.ApplicationContext;
 
+/**
+ * 
+ * @author aristo
+ *
+ */
 public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 	private final static String PARAMETER_ID = "id";
 	
@@ -64,7 +69,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 				FormService formService = (FormService) appContext.getBean("formService");
 				Form form = (Form)formService.createElementFromJson(autofillForm.toString());
 								
-				if(loadBinder != null) {
+				if(form != null && loadBinder != null) {
 					Map<String, Object> binderProperties = jsonToMap(autofillLoadBinder.getJSONObject("properties"));
 					
 					// set enhancement-plugin properties
@@ -79,7 +84,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 					response.setStatus(HttpServletResponse.SC_OK);
 					response.getWriter().write(data.toString());
 				} else {
-					response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED);	
+					response.sendError(HttpServletResponse.SC_NOT_FOUND);	
 				}
 				
 			} catch (JSONException e) {
@@ -143,7 +148,8 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 	@Override
 	public String renderTemplate(FormData formData, Map dataModel) {
         String template = "AutofillFormElements.ftl";
-
+        Form rootForm = FormUtil.findRootForm(this);
+        
         dynamicOptions(formData);
 
         // set value
@@ -159,7 +165,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
         dataModel.put("keyField", PARAMETER_ID);
         
         Map<String, String> fieldTypes = new HashMap<String, String>();
-        getFieldTypes(FormUtil.findRootForm(this), fieldTypes);
+        getFieldTypes(rootForm, fieldTypes);
         dataModel.put("fieldTypes", fieldTypes);
                 
         try {
@@ -167,10 +173,10 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
         	if(autofillLoadBinder != null)
         		dataModel.put("autofillLoadBinder", FormUtil.generatePropertyJsonObject(autofillLoadBinder));
         	
-			dataModel.put("autofillForm", FormUtil.generateElementJson(FormUtil.findRootForm(this)));
+        	if(rootForm != null)
+        		dataModel.put("autofillForm", FormUtil.generateElementJson(rootForm));
 		} catch (Exception e) {
-			LogUtil.warn(getClassName(), "Load Binder properties error");
-			e.printStackTrace();
+			LogUtil.error(getClassName(), e, "Load Binder properties error");
 		}
         
         String html = FormUtil.generateElementHtml(this, formData, template, dataModel);
@@ -178,21 +184,25 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 	}
 	
 	private void getFieldTypes(Element element, Map<String, String> types) {
-		String id = element.getPropertyString(FormUtil.PROPERTY_ID);
-		
-		if(id != null && !id.isEmpty()) {
-			if(element instanceof CheckBox)
-				types.put(id, "CHECK_BOXES");
-			else if(element instanceof Radio)
-				types.put(id, "RADIOS");
-			else if(element.getClassName().matches(".+Grid$"))
-				types.put(id, "GRIDS");
-			else
-				types.put(id, "OTHERS");
-		}
-		
-		for(Element child : element.getChildren()) {
-			getFieldTypes(child, types);
+		if(element != null) {
+			String id = element.getPropertyString(FormUtil.PROPERTY_ID);
+			
+			if(id != null && !id.isEmpty()) {
+				if(element instanceof CheckBox)
+					types.put(id, "CHECK_BOXES");
+				else if(element instanceof Radio)
+					types.put(id, "RADIOS");
+				else if(element.getClassName().matches(".+Grid$"))
+					types.put(id, "GRIDS");
+				else if(element instanceof SelectBox)
+					types.put(id, "SELECT_BOXES");
+				else
+					types.put(id, "OTHERS");
+			}
+			
+			for(Element child : element.getChildren()) {
+				getFieldTypes(child, types);
+			}
 		}
 	}
 	

@@ -1,6 +1,6 @@
 <div class="form-cell" ${elementMetaData!}>
-	<link rel="stylesheet" href="${request.contextPath}/plugin/org.joget.apps.form.lib.SelectBox/css/chosen.min.css">
-	<script src="${request.contextPath}/plugin/org.joget.apps.form.lib.SelectBox/js/chosen.jquery.min.js" type="text/javascript"></script>
+	<link rel="stylesheet" href="${request.contextPath}/plugin/${className}/css/chosen.min.css">
+	<script src="${request.contextPath}/plugin/${className}/js/chosen.jquery.min.js" type="text/javascript"></script>
 	
     <label class="label">${element.properties.label} <span class="form-cell-validator">${decoration}</span><#if error??> <span class="form-error-message">${error}</span></#if></label>
     <#if (element.properties.readonly! == 'true' && element.properties.readonlyLabel! == 'true') >
@@ -62,7 +62,9 @@
 			
 			var prefix = "${elementParamName!}${element.properties.elementUniqueKey!}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
 			
-			$('#${elementParamName!}${element.properties.elementUniqueKey!}').ready(trigger_${elementParamName!}${element.properties.elementUniqueKey!});    		
+			<#if values??>
+				// $('#${elementParamName!}${element.properties.elementUniqueKey!}').ready(trigger_${elementParamName!}${element.properties.elementUniqueKey!});
+			</#if>    		
     		$('#${elementParamName!}${element.properties.elementUniqueKey!}').change(trigger_${elementParamName!}${element.properties.elementUniqueKey!});
     		
     		function trigger_${elementParamName!}${element.properties.elementUniqueKey!}() {
@@ -73,22 +75,22 @@
 		            url: url,
 		            type : 'POST',
 		            headers : { 'Content-Type' : 'application/json' },
-		            data : '{ autofillLoadBinder : ${autofillLoadBinder!}, autofillForm : ${autofillForm!}}'
+		            data : JSON.stringify({ "autofillLoadBinder" : ${autofillLoadBinder!}, "autofillForm" : ${autofillForm!}})
 		        })
 				.done(function(data) {
 		         	for(var i in data) {
 				         <#list element.properties.autofillFields! as field>
-				         	<#assign fieldType = fieldTypes[field.formField!]>
-				         	<#if fieldType == 'RADIOS' >
+				         	<#assign fieldType = fieldTypes[field.formField!]!>
+				         	<#if fieldType! == 'RADIOS' >
 			         			$("input[name$='" + prefix + "${field.formField!}']").each(function() {
 			         				$(this).prop('checked', $(this).val() == data[i].${field.resultField!});
 			         			});
-			         		<#elseif fieldType == 'CHECK_BOXES'>
+			         		<#elseif fieldType! == 'CHECK_BOXES'>
 			         			$("input[name$='" + prefix + "${field.formField!}']").each(function() {
 			         				var multivalue = data[i].${field.resultField!}.split(/;/);
 			         				$(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
 			         			});
-			         		<#elseif fieldType == 'GRIDS'>			         			
+			         		<#elseif fieldType! == 'GRIDS'>			         			
 			         			$("div.grid[name$='" + prefix + "${field.formField!}']").each(function() {
 			         				<#-- remove previous grid row -->
 				         			$(this).find('tr.grid-row').each(function() {
@@ -96,14 +98,22 @@
 				         			});
 			         			
 			         				try {
-				         				var gridData = JSON.parse(data[i].${field.resultField!});
-				         				for(var j in gridData) {
-				         					formgrid_${field.formField!}_add({result : JSON.stringify(gridData[j])});
-				         				}
+			         					var functionAdd = window[$(this).prop('id') + '_add'];
+			         					if(typeof functionAdd == 'function') {
+					         				var gridData = JSON.parse(data[i].${field.resultField!});
+					         				for(var j in gridData) {
+					         					functionAdd({result : JSON.stringify(gridData[j])});
+					         				}
+					         			}
 				         			} catch (e) { }
 				         		});
-			         		<#else>
-			         			$("input[name$='" + prefix + "${field.formField!}']").each(function() {
+			         		<#elseif fieldType! == 'SELECT_BOXES'>
+			         			$("select[name$='" + prefix + "${field.formField!}']").each(function() {
+			    					$(this).val(data[i].${field.resultField!}.split(/;/));
+			    					$(this).trigger("chosen:updated");
+			    				});
+			    			<#else>
+			    				$("[name$='" + prefix + "${field.formField!}']").each(function() {
 			    					$(this).val(data[i].${field.resultField!});
 			    				});
 			    			</#if>
