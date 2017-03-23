@@ -23,6 +23,9 @@ import org.springframework.context.ApplicationContext;
 /**
  * 
  * @author aristo
+ * 
+ * Default form binder for element {@link AutofillSelectBox}
+ * Load data from another form
  *
  */
 public class AutofillFormBinder extends FormBinder  implements FormLoadElementBinder {
@@ -105,11 +108,6 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 	}
 	
 	private void getElementData(Element element, FormData formData, FormRow result) {
-		System.out.println("element class " + element.getClassName());
-		System.out.println("result before");
-		for(Map.Entry entry : result.entrySet()) {
-			System.out.println(entry.getKey().toString() + "->" + entry.getValue().toString());
-		}
 		FormRowSet rowSet = formData.getLoadBinderData(element);
 		if(rowSet != null && !rowSet.isEmpty()) {
 			if(rowSet.isMultiRow()) {
@@ -123,12 +121,7 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 				}
 			}
 		}
-		
-		System.out.println("result after");
-		for(Map.Entry entry : result.entrySet()) {
-			System.out.println(entry.getKey().toString() + "->" + entry.getValue().toString());
-		}
-		
+				
 		if(element.getChildren() != null) {
 			for(Element child : element.getChildren()) {
 				getElementData(child, formData, result);

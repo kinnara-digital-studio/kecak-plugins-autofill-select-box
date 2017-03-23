@@ -20,12 +20,15 @@ import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.form.lib.CheckBox;
 import org.joget.apps.form.lib.Radio;
 import org.joget.apps.form.lib.SelectBox;
+import org.joget.apps.form.lib.SubForm;
+import org.joget.apps.form.model.Column;
 import org.joget.apps.form.model.Element;
 import org.joget.apps.form.model.Form;
 import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.model.FormLoadBinder;
 import org.joget.apps.form.model.FormRow;
 import org.joget.apps.form.model.FormRowSet;
+import org.joget.apps.form.model.Section;
 import org.joget.apps.form.service.FormService;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
@@ -42,6 +45,8 @@ import org.springframework.context.ApplicationContext;
  * 
  * @author aristo
  *
+ * Autofill other elements based on this element's value as ID
+ * 
  */
 public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 	private final static String PARAMETER_ID = "id";
@@ -167,7 +172,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
         Map<String, String> fieldTypes = new HashMap<String, String>();
         getFieldTypes(rootForm, fieldTypes);
         dataModel.put("fieldTypes", fieldTypes);
-                
+        
         try {
         	Map<String, Object> autofillLoadBinder = (Map<String, Object>)getProperty("autofillLoadBinder");
         	if(autofillLoadBinder != null)
@@ -179,8 +184,39 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 			LogUtil.error(getClassName(), e, "Load Binder properties error");
 		}
         
+        Map<String, String> fieldsMapping = generateFieldsMapping(rootForm, "true".equals(getPropertyString("lazyMapping")), (Object[])getProperty("autofillFields"));
+        dataModel.put("fieldsMapping", fieldsMapping);
+        
         String html = FormUtil.generateElementHtml(this, formData, template, dataModel);
         return html;
+	}
+	
+	private Map<String, String> generateFieldsMapping(Form rootForm, boolean lazyMapping, Object[] autofillFields) {
+		Map<String, String> fieldsMapping = new HashMap<String, String>();
+		if(lazyMapping) {
+			iterateLazyFieldsMapping(fieldsMapping, rootForm);
+		} else {
+			for(Object o : autofillFields) {
+				Map<String, String> column = (Map<String, String>)o;
+				fieldsMapping.put(column.get("formField"), column.get("resultField"));
+			}
+		}
+		
+		return fieldsMapping; 
+	}
+	
+	private void iterateLazyFieldsMapping(Map<String, String> fieldsMapping, Element element) {
+		if(element != null) {
+			for(Element child : element.getChildren()) {
+				String id = child.getPropertyString(FormUtil.PROPERTY_ID);
+				if(!(child instanceof SubForm || child instanceof Column || child instanceof Section)
+						&& id != null && !id.isEmpty()) {
+					fieldsMapping.put(id, id);
+				}
+			
+				iterateLazyFieldsMapping(fieldsMapping, child);
+			}
+		}
 	}
 	
 	private void getFieldTypes(Element element, Map<String, String> types) {
