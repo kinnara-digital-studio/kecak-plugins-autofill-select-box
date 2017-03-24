@@ -166,8 +166,7 @@
 				},
 				{
 					key : 'resultField',
-					label : 'Result Data Field',
-					required : 'true'
+					label : 'Result Data Field'
 				}
 			]
 		}

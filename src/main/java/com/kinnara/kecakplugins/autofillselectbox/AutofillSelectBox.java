@@ -24,6 +24,7 @@ import org.joget.apps.form.lib.SubForm;
 import org.joget.apps.form.model.Column;
 import org.joget.apps.form.model.Element;
 import org.joget.apps.form.model.Form;
+import org.joget.apps.form.model.FormBinder;
 import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.model.FormLoadBinder;
 import org.joget.apps.form.model.FormRow;
@@ -35,7 +36,6 @@ import org.joget.commons.util.LogUtil;
 import org.joget.commons.util.SecurityUtil;
 import org.joget.plugin.base.PluginManager;
 import org.joget.plugin.base.PluginWebSupport;
-import org.joget.plugin.property.model.PropertyEditable;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -54,35 +54,30 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 	public void webService(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 		
-		
 		if("POST".equals(request.getMethod())) {
 			ApplicationContext appContext = AppUtil.getApplicationContext();
 			
-			try {			
+			try {
 				JSONObject body = constructRequestBody(request);
 				
 				JSONObject autofillLoadBinder = body.getJSONObject("autofillLoadBinder");
 				JSONObject autofillForm = body.getJSONObject("autofillForm");
-						
-				PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
-				
-				// build enhancement-plugin
-				Object loadBinder = pluginManager
-						.getPlugin(autofillLoadBinder.getString("className"));
 				
 				// build form
 				FormService formService = (FormService) appContext.getBean("formService");
 				Form form = (Form)formService.createElementFromJson(autofillForm.toString());
 								
-				if(form != null && loadBinder != null) {
-					Map<String, Object> binderProperties = jsonToMap(autofillLoadBinder.getJSONObject("properties"));
-					
-					// set enhancement-plugin properties
-					if(binderProperties != null) {
-						((PropertyEditable)loadBinder).setProperties(binderProperties);
+				if(form != null) {
+					try {
+						PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
+						FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(autofillLoadBinder.getString(FormUtil.PROPERTY_CLASS_NAME));
+						Map<String, Object> properties = FormUtil.parsePropertyFromJsonObject(autofillLoadBinder);
+						loadBinder.setProperties(properties);
 						form.setLoadBinder((FormLoadBinder)loadBinder);
+					} catch (Exception e) {
+						LogUtil.error(getClassName(), e, "Error generating load binder");
 					}
-					
+
 					String primaryKey = request.getParameter(PARAMETER_ID);
 					JSONArray data = loadFormData(form, primaryKey);
 	
@@ -127,7 +122,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
         } else {
             selectForm = "{name:'selectForm',label:'Form',type:'textfield',required : 'True'}";
         }
-        return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillFormElements.json", new String[]{selectForm, encryption}, true, "message/form/SelectBox");
+        return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillSelectBox.json", new String[]{selectForm, encryption}, true, "message/form/SelectBox");
 	}
 
 	@Override
@@ -152,7 +147,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 
 	@Override
 	public String renderTemplate(FormData formData, Map dataModel) {
-        String template = "AutofillFormElements.ftl";
+        String template = "AutofillSelectBox.ftl";
         Form rootForm = FormUtil.findRootForm(this);
         
         dynamicOptions(formData);
@@ -174,14 +169,17 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
         dataModel.put("fieldTypes", fieldTypes);
         
         try {
+        	JSONObject requestBody = new JSONObject();
         	Map<String, Object> autofillLoadBinder = (Map<String, Object>)getProperty("autofillLoadBinder");
         	if(autofillLoadBinder != null)
-        		dataModel.put("autofillLoadBinder", FormUtil.generatePropertyJsonObject(autofillLoadBinder));
+        		requestBody.put("autofillLoadBinder", FormUtil.generatePropertyJsonObject(autofillLoadBinder));
         	
         	if(rootForm != null)
-        		dataModel.put("autofillForm", FormUtil.generateElementJson(rootForm));
+        		requestBody.put("autofillForm", new JSONObject(FormUtil.generateElementJson(rootForm)));
+        	
+        	dataModel.put("requestBody", requestBody);
 		} catch (Exception e) {
-			LogUtil.error(getClassName(), e, "Load Binder properties error");
+			LogUtil.error(getClassName(), e, "Error generating form json");
 		}
         
         Map<String, String> fieldsMapping = generateFieldsMapping(rootForm, "true".equals(getPropertyString("lazyMapping")), (Object[])getProperty("autofillFields"));
@@ -195,11 +193,16 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 		Map<String, String> fieldsMapping = new HashMap<String, String>();
 		if(lazyMapping) {
 			iterateLazyFieldsMapping(fieldsMapping, rootForm);
-		} else {
-			for(Object o : autofillFields) {
-				Map<String, String> column = (Map<String, String>)o;
-				fieldsMapping.put(column.get("formField"), column.get("resultField"));
-			}
+		}
+		
+		for(Object o : autofillFields) {
+			Map<String, String> column = (Map<String, String>)o;
+			String formField = column.get("formField");
+			String resultField = column.get("resultField");
+			if(!resultField.isEmpty())
+				fieldsMapping.put(formField, resultField);
+			else
+				fieldsMapping.remove(formField);
 		}
 		
 		return fieldsMapping; 

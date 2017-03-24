@@ -79,7 +79,7 @@
 		            url: url,
 		            type : 'POST',
 		            headers : { 'Content-Type' : 'application/json' },
-		            data : JSON.stringify({ "autofillLoadBinder" : ${autofillLoadBinder!}, "autofillForm" : ${autofillForm!}})
+		            data : JSON.stringify(${requestBody!})
 		        })
 				.done(function(data) {
 					$('img#${elementId!}_loading').hide();
