@@ -132,12 +132,12 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 
 	@Override
 	public String getVersion() {
-		return "1.1.0";
+		return getClass().getPackage().getImplementationVersion();
 	}
 
 	@Override
 	public String getDescription() {
-		return "Kecak - " + getName();
+		return "Artifact ID : kecak-plugins-autofill-select-box";
 	}
 
 	@Override
