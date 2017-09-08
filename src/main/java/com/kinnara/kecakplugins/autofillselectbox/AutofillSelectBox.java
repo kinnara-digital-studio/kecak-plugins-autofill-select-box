@@ -66,16 +66,17 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 				// build form
 				FormService formService = (FormService) appContext.getBean("formService");
 				Form form = (Form)formService.createElementFromJson(autofillForm.toString());
+
+				PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
+				FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(autofillLoadBinder.getString(FormUtil.PROPERTY_CLASS_NAME));
 								
-				if(form != null) {
+				if(form != null && loadBinder != null) {
 					try {
-						PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
-						FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(autofillLoadBinder.getString(FormUtil.PROPERTY_CLASS_NAME));
 						Map<String, Object> properties = FormUtil.parsePropertyFromJsonObject(autofillLoadBinder);
 						loadBinder.setProperties(properties);
-						form.setLoadBinder((FormLoadBinder)loadBinder);
+						form.setLoadBinder((FormLoadBinder) loadBinder);
 					} catch (Exception e) {
-						LogUtil.error(getClassName(), e, "Error generating load binder");
+						LogUtil.error(getClassName(), e, "Error configuring load binder");
 					}
 
 					String primaryKey = request.getParameter(PARAMETER_ID);
@@ -127,7 +128,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 
 	@Override
 	public String getName() {
-		return "Autofill SelectBox";
+		return "Kecak Autofill SelectBox";
 	}
 
 	@Override

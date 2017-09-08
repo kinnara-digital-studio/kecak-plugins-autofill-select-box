@@ -68,6 +68,7 @@
 			<#if values??>
 				// $('#${elementId}').ready(trigger_${elementId});
 			</#if>
+
     		$('#${elementId}').change(trigger_${elementId});
     		
     		function trigger_${elementId}() {
@@ -83,7 +84,38 @@
 		        })
 				.done(function(data) {
 					$('img#${elementId!}_loading').hide();
-					
+
+					<#-- clean up field -->
+                    <#list fieldsMapping?keys! as field>
+                        <#assign fieldType = fieldTypes[field!]!>
+                        <#if fieldType! == 'RADIOS' >
+                            $("input[name$='" + prefix + "${field!}']").each(function() {
+                                $(this).prop('checked', false);
+                            });
+                        <#elseif fieldType! == 'CHECK_BOXES'>
+                            $("input[name$='" + prefix + "${field!}']").each(function() {
+                                var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
+                                $(this).prop('checked', false);
+                            });
+                        <#elseif fieldType! == 'GRIDS'>
+                            $("div.grid[name$='" + prefix + "${field!}']").each(function() {
+                                <#-- remove previous grid row -->
+                                $(this).find('tr.grid-row').each(function() {
+                                    $(this).remove();
+                                });
+                            });
+                        <#elseif fieldType! == 'SELECT_BOXES'>
+                            $("select[name$='" + prefix + "${field!}']").each(function() {
+                                $(this).val([]);
+                                $(this).trigger("chosen:updated");
+                            });
+                        <#else>
+                            $("[name$='" + prefix + "${field!}']").each(function() {
+                                $(this).val('');
+                            });
+                        </#if>
+                    </#list>
+
 		         	for(var i in data) {
 		         		if(data[i]) {
 				         <#list fieldsMapping?keys! as field>

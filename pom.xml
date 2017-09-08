@@ -4,17 +4,17 @@
     <groupId>com.kinnara</groupId>
     <artifactId>kecak-plugins-autofill-select-box</artifactId>
     <packaging>bundle</packaging>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <name>kecak-plugins-autofill-select-box</name>
     <url>http://www.kinnarastudio.com</url>
     <build>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.0.2</version>
+                <version>3.6.1</version>
                 <configuration>
-                    <source>1.5</source>
-                    <target>1.5</target>
+                    <source>1.7</source>
+                    <target>1.7</target>
                 </configuration>
             </plugin>
             <plugin>

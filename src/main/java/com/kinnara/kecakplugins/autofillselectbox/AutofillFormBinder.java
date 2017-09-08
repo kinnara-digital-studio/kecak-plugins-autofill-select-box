@@ -1,24 +1,18 @@
 package com.kinnara.kecakplugins.autofillselectbox;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;
 import org.joget.apps.app.service.AppUtil;
-import org.joget.apps.form.model.Element;
-import org.joget.apps.form.model.Form;
-import org.joget.apps.form.model.FormBinder;
-import org.joget.apps.form.model.FormData;
-import org.joget.apps.form.model.FormLoadElementBinder;
-import org.joget.apps.form.model.FormRow;
-import org.joget.apps.form.model.FormRowSet;
+import org.joget.apps.form.model.*;
 import org.joget.apps.form.service.FormService;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationContext;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 
@@ -29,7 +23,7 @@ import org.springframework.context.ApplicationContext;
  *
  */
 public class AutofillFormBinder extends FormBinder  implements FormLoadElementBinder {
-	private Map<String, Form> formCache = new HashMap<String, Form>();
+	private final Map<String, Form> formCache = new HashMap<>();
 	
 	public FormRowSet load(Element element, String primaryKey, FormData formData) {			
 		FormRowSet rowSet = new FormRowSet();
@@ -73,21 +67,18 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 		FormDefinitionDao formDefinitionDao = (FormDefinitionDao)appContext.getBean("formDefinitionDao");
 		
     	// check in cache
-    	if(formCache != null && formCache.containsKey(formDefId))
+    	if(formCache.containsKey(formDefId))
     		return formCache.get(formDefId);
     	
-    	// proceed without cache    	
-        Form form = null;
+    	// proceed without cache
         AppDefinition appDef = AppUtil.getCurrentAppDefinition();
         if (appDef != null && formDefId != null && !formDefId.isEmpty()) {
             FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
             if (formDef != null) {
                 String json = formDef.getJson();
-                form = (Form)formService.createElementFromJson(json);
-                
-                // put in cache if possible
-                if(formCache != null)
-                	formCache.put(formDefId, form);
+				Form form = (Form)formService.createElementFromJson(json);
+
+				formCache.put(formDefId, form);
                 
                 return form;
             }
