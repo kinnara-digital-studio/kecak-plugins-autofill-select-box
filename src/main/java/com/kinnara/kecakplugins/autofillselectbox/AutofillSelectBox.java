@@ -128,7 +128,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 
 	@Override
 	public String getName() {
-		return "Kecak Autofill SelectBox";
+		return "Autofill SelectBox";
 	}
 
 	@Override
@@ -138,12 +138,12 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 
 	@Override
 	public String getDescription() {
-		return "Artifact ID : kecak-plugins-autofill-select-box";
+		return "Kecak Plugins; Artifact ID : " + getClass().getPackage().getImplementationTitle();
 	}
 
 	@Override
 	public String getFormBuilderCategory() {
-		return "Kecak Enterprise";
+		return "Kecak Plugins";
     }
 
 	@Override
@@ -193,7 +193,15 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 	private Map<String, String> generateFieldsMapping(Form rootForm, boolean lazyMapping, Object[] autofillFields) {
 		Map<String, String> fieldsMapping = new HashMap<String, String>();
 		if(lazyMapping) {
-			iterateLazyFieldsMapping(fieldsMapping, rootForm);
+			final String selectBoxId = getPropertyString(FormUtil.PROPERTY_ID);
+			iterateLazyFieldsMapping(fieldsMapping, rootForm, new ConditionCallback() {
+				@Override
+				public boolean isFulfillCondition(Element element) {
+					String id = element.getPropertyString(FormUtil.PROPERTY_ID);
+					return !(element instanceof SubForm || element instanceof Column || element instanceof Section)
+							&& id != null && !id.isEmpty() && !id.equals(selectBoxId);
+				}
+			});
 		}
 		
 		for(Object o : autofillFields) {
@@ -208,17 +216,34 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 		
 		return fieldsMapping; 
 	}
-	
-	private void iterateLazyFieldsMapping(Map<String, String> fieldsMapping, Element element) {
+
+	/**
+	 * Condition callback when iterating elements
+	 */
+	interface ConditionCallback {
+		/**
+		 *
+		 * @param element
+		 * @return true if element field should be mapped
+		 */
+		boolean isFulfillCondition(Element element);
+	}
+
+	/**
+	 * Recursively iterating elements' children
+	 * @param fieldsMapping
+	 * @param element
+	 * @param conditionCallback
+	 */
+	private void iterateLazyFieldsMapping(Map<String, String> fieldsMapping, Element element, ConditionCallback conditionCallback) {
 		if(element != null) {
 			for(Element child : element.getChildren()) {
-				String id = child.getPropertyString(FormUtil.PROPERTY_ID);
-				if(!(child instanceof SubForm || child instanceof Column || child instanceof Section)
-						&& id != null && !id.isEmpty()) {
+				if(conditionCallback.isFulfillCondition(child)) {
+					String id = child.getPropertyString(FormUtil.PROPERTY_ID);
 					fieldsMapping.put(id, id);
 				}
 			
-				iterateLazyFieldsMapping(fieldsMapping, child);
+				iterateLazyFieldsMapping(fieldsMapping, child, conditionCallback);
 			}
 		}
 	}

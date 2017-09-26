@@ -50,7 +50,7 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 	}
 
 	public String getName() {
-		return "Kecak Autofill Form Binder";
+		return "Autofill Form Binder";
 	}
 
 	public String getVersion() {
@@ -58,7 +58,7 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 	}
 
 	public String getDescription() {
-		return "Default Autofill Form Binder; Artifact ID : kecak-plugins-autofill-select-box";
+		return "Kecak Plugins; Default Autofill Form Binder; Artifact ID : " + getClass().getPackage().getImplementationTitle();
 	}
 
 	private Form generateForm(String formDefId) {
