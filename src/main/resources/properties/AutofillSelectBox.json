@@ -158,7 +158,7 @@
 		{
 			name : 'autofillFields',
 			label : 'Fields Mapping',
-            description : '@@autofillSelectBox.autofillFields.description@@',
+            description : 'Leave Result Data Field empty if you want skip the mapping',
 			type : 'grid',
 			columns : [
 				{

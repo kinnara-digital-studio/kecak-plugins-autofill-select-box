@@ -76,11 +76,27 @@
     			var url = "${request.contextPath}/web/json/plugin/${className}/service?${keyField}=" + primaryKey;
     			
     			$('img#${elementId!}_loading').show();
+
+    			var jsonData = ${requestBody!};
+    			jsonData.autofillRequestParameter = new Object();
+
+                <#-- BETA -->
+                // set input fields as request parameter
+                var prefix = '${element.properties.customParameterName!}'.replace(/${element.properties.id}$/, '');
+                var patternPrefix = new RegExp('^' + prefix);
+
+    			$('input[name^="' + prefix + '"]').each(function() {
+    			    var name = $(this).attr('name');
+                    if(name) {
+                        jsonData.autofillRequestParameter[name.replace(patternPrefix, '')] = $(this).val();
+    			    }
+    			});
+
     			$.ajax({
 		            url: url,
 		            type : 'POST',
 		            headers : { 'Content-Type' : 'application/json' },
-		            data : JSON.stringify(${requestBody!})
+		            data : JSON.stringify(jsonData)
 		        })
 				.done(function(data) {
 					$('img#${elementId!}_loading').hide();
@@ -121,7 +137,11 @@
 				         <#list fieldsMapping?keys! as field>
 				         	if(data[i].${fieldsMapping[field]!}) {
 					         	<#assign fieldType = fieldTypes[field!]!>
-					         	<#if fieldType! == 'RADIOS' >
+					         	<#if fieldType == 'LABEL'>
+					         	    $("div.subform-cell-value span[id='" + prefix + "${field!}']").each(function() {
+                                        $(this).html(data[i].${fieldsMapping[field]!});
+                                    });
+					         	<#elseif fieldType! == 'RADIOS' >
 				         			$("input[name$='" + prefix + "${field!}']").each(function() {
 				         				$(this).prop('checked', $(this).val() == data[i].${fieldsMapping[field]!});
 				         			});

@@ -1,10 +1,11 @@
 package com.kinnara.kecakplugins.autofillselectbox;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 public class Activator implements BundleActivator {
 

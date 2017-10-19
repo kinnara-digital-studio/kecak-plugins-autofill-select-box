@@ -25,7 +25,7 @@ import java.util.Map;
 public class AutofillFormBinder extends FormBinder  implements FormLoadElementBinder {
 	private final Map<String, Form> formCache = new HashMap<>();
 	
-	public FormRowSet load(Element element, String primaryKey, FormData formData) {			
+	public FormRowSet load(Element element, String primaryKey, FormData formData) {
 		FormRowSet rowSet = new FormRowSet();
 		Form form = generateForm(getPropertyString("formDefId"));
 		
