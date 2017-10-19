@@ -65,11 +65,8 @@
 			
 			var prefix = "${elementId}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
 			
-			<#if values??>
-				// $('#${elementId}').ready(trigger_${elementId});
-			</#if>
-
-    		$('#${elementId}').change(trigger_${elementId});
+			
+    		$('#${elementId}').change(trigger_${elementId}).change();
     		
     		function trigger_${elementId}() {
     			var primaryKey = $(this).val();
