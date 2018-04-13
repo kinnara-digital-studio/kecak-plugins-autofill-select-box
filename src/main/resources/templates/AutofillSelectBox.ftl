@@ -70,7 +70,7 @@
     		
     		function trigger_${elementId}() {
     			var primaryKey = $(this).val();
-    			var url = "${request.contextPath}/web/json/plugin/${className}/service?${keyField}=" + primaryKey;
+    			var url = "${request.contextPath}/web/json/plugin/${className}/service?${keyField}=" + primaryKey + "&appId=${appId}&appVersion=${appVersion}";
     			
     			$('img#${elementId!}_loading').show();
 

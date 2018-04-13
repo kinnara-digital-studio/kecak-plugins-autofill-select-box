@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
  */
 public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 	private final static String PARAMETER_ID = "id";
+	private final static String PARAMETER_APP_ID = "appId";
+	private final static String PARAMETER_APP_VERSION = "appVersion";
 
 	public void webService(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
@@ -69,6 +71,12 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 					}
 
 					String primaryKey = request.getParameter(PARAMETER_ID);
+					String appId = request.getParameter(PARAMETER_APP_ID);
+					String appVersion = request.getParameter(PARAMETER_APP_VERSION);
+
+					autofillRequestParameter.put(PARAMETER_APP_ID, appId);
+					autofillRequestParameter.put(PARAMETER_APP_VERSION, appVersion);
+
 					JSONArray data = loadFormData(form, primaryKey, autofillRequestParameter);
 	
 					response.setStatus(HttpServletResponse.SC_OK);
@@ -174,7 +182,11 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
         
         Map<String, String> fieldsMapping = generateFieldsMapping(rootForm, "true".equals(getPropertyString("lazyMapping")), (Object[])getProperty("autofillFields"));
         dataModel.put("fieldsMapping", fieldsMapping);
-        
+
+        AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
+        dataModel.put("appId", appDefinition.getAppId());
+        dataModel.put("appVersion", appDefinition.getVersion());
+
         String html = FormUtil.generateElementHtml(this, formData, template, dataModel);
         return html;
 	}
