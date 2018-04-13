@@ -4,13 +4,11 @@ import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;
 import org.joget.apps.app.service.AppUtil;
-import org.joget.apps.form.lib.CheckBox;
-import org.joget.apps.form.lib.Radio;
-import org.joget.apps.form.lib.SelectBox;
-import org.joget.apps.form.lib.SubForm;
+import org.joget.apps.form.lib.*;
 import org.joget.apps.form.model.*;
 import org.joget.apps.form.service.FormService;
 import org.joget.apps.form.service.FormUtil;
+import org.joget.apps.workflow.lib.AssignmentCompleteButton;
 import org.joget.commons.util.LogUtil;
 import org.joget.commons.util.SecurityUtil;
 import org.joget.plugin.base.PluginManager;
@@ -26,6 +24,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 
@@ -178,16 +177,13 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 	}
 	
 	private Map<String, String> generateFieldsMapping(Form rootForm, boolean lazyMapping, Object[] autofillFields) {
-		Map<String, String> fieldsMapping = new HashMap<String, String>();
+		Map<String, String> fieldsMapping = new HashMap<>();
 		if(lazyMapping) {
 			final String selectBoxId = getPropertyString(FormUtil.PROPERTY_ID);
-			iterateLazyFieldsMapping(fieldsMapping, rootForm, new ConditionCallback() {
-				@Override
-				public boolean isFulfillCondition(Element element) {
-					String id = element.getPropertyString(FormUtil.PROPERTY_ID);
-					return !(element instanceof SubForm || element instanceof Column || element instanceof Section)
-							&& id != null && !id.isEmpty() && !id.equals(selectBoxId);
-				}
+			iterateLazyFieldsMapping(fieldsMapping, rootForm, element -> {
+				String id = element.getPropertyString(FormUtil.PROPERTY_ID);
+				return !(element instanceof SubForm || element instanceof Column || element instanceof Section || element instanceof FormButton)
+						&& id != null && !id.isEmpty() && !id.equals(selectBoxId);
 			});
 		}
 		
@@ -273,14 +269,9 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 	}
 	
 	private JSONObject constructRequestBody(HttpServletRequest request) throws IOException, JSONException {
-		StringBuilder sb = new StringBuilder();
-		BufferedReader bf = request.getReader();
-		String line;
-		while((line = bf.readLine()) != null) {
-			sb.append(line);
+		try(BufferedReader bf = request.getReader()) {
+			return new JSONObject(bf.lines().collect(Collectors.joining()));
 		}
-		
-		return new JSONObject(sb.toString());
 	}
 	
 	private Map<String, Object> jsonToMap(JSONObject json) {
