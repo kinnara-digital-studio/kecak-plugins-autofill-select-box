@@ -1,5 +1,6 @@
 package com.kinnara.kecakplugins.autofillselectbox;
 
+import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;
@@ -27,12 +28,22 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 	
 	public FormRowSet load(Element element, String primaryKey, FormData formData) {
 		FormRowSet rowSet = new FormRowSet();
-		Form form = generateForm(getPropertyString("formDefId"));
+
+		String appId = formData.getRequestParameter("appId");
+		String appVersion = formData.getRequestParameter("appVersion");
+
+		AppDefinitionDao appDefinitionDao = (AppDefinitionDao) AppUtil.getApplicationContext().getBean("appDefinitionDao");
+		AppDefinition appDefinition = appId == null ? AppUtil.getCurrentAppDefinition() : appDefinitionDao.findByVersion(null, appId, Long.getLong(appVersion), null, null, null, 0, 1)
+				.stream()
+				.findFirst()
+				.orElse(null);
+
+		Form form = generateForm(appDefinition, getPropertyString("formDefId"));
 		
 		if(form != null) {
 			rowSet.add(loadFormData(form, formData));
 		} else {
-			LogUtil.warn(getClassName(), "Cannot generate form [" + getPropertyString("formDefId") + "]");
+			LogUtil.warn(getClassName(), "Cannot generate form [" + getPropertyString("formDefId") + "] in app ["+appDefinition.getAppId()+"] version ["+appDefinition.getVersion()+"]");
 		}
 		return rowSet;
 	}
@@ -61,7 +72,7 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 		return "Kecak Plugins; Default Autofill Form Binder; Artifact ID : " + getClass().getPackage().getImplementationTitle();
 	}
 
-	private Form generateForm(String formDefId) {
+	private Form generateForm(AppDefinition appDef, String formDefId) {
 		ApplicationContext appContext = AppUtil.getApplicationContext();
 		FormService formService = (FormService) appContext.getBean("formService");
 		FormDefinitionDao formDefinitionDao = (FormDefinitionDao)appContext.getBean("formDefinitionDao");
@@ -71,7 +82,6 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
     		return formCache.get(formDefId);
     	
     	// proceed without cache
-        AppDefinition appDef = AppUtil.getCurrentAppDefinition();
         if (appDef != null && formDefId != null && !formDefId.isEmpty()) {
             FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
             if (formDef != null) {
