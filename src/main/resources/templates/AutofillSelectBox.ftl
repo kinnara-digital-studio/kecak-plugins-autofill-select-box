@@ -137,6 +137,7 @@
 					         	<#if fieldType == 'LABEL'>
 					         	    $("div.subform-cell-value span[id='" + prefix + "${field!}']").each(function() {
                                         $(this).html(data[i].${fieldsMapping[field]!});
+                                        $(this).trigger("change");
                                     });
 					         	<#elseif fieldType! == 'RADIOS' >
 				         			$("input[name$='" + prefix + "${field!}']").each(function() {
@@ -168,10 +169,12 @@
 				         			$("select[name$='" + prefix + "${field!}']").each(function() {
 				    					$(this).val(data[i].${fieldsMapping[field]!}.split(/;/));
 				    					$(this).trigger("chosen:updated");
+				    					$(this).trigger("change");
 				    				});
 				    			<#else>
 				    				$("[name$='" + prefix + "${field!}']").each(function() {
 				    					$(this).val(data[i].${fieldsMapping[field]!});
+				    					$(this).trigger("change");
 				    				});
 				    			</#if>
 				    		}	
