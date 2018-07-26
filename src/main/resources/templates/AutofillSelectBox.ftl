@@ -5,6 +5,11 @@
 	<#assign elementId = elementParamName + element.properties.elementUniqueKey>
 	
     <label class="label">${element.properties.label} <span class="form-cell-validator">${decoration}</span><#if error??> <span class="form-error-message">${error}</span></#if></label>
+
+    <#if includeMetaData>
+        <span class="form-floating-label">${fieldType}</span>
+    </#if>
+
     <#if (element.properties.readonly! == 'true' && element.properties.readonlyLabel! == 'true') >
         <div class="form-cell-value">
             <#list options as option>
@@ -69,125 +74,128 @@
     		$('#${elementId}').change(trigger_${elementId}).change();
     		
     		function trigger_${elementId}() {
-    			var primaryKey = $(this).val();
-    			var url = "${request.contextPath}/web/json/plugin/${className}/service?${keyField}=" + primaryKey + "&appId=${appId}&appVersion=${appVersion}";
-    			
-    			$('img#${elementId!}_loading').show();
+    		    <#if includeMetaData == false>
+                    var primaryKey = $(this).val();
+                    var url = "${request.contextPath}/web/json/plugin/${className}/service?${keyField}=" + primaryKey + "&appId=${appId}&appVersion=${appVersion}";
 
-    			var jsonData = ${requestBody!};
-    			jsonData.autofillRequestParameter = new Object();
+                    $('img#${elementId!}_loading').show();
 
-                <#-- BETA -->
-                // set input fields as request parameter
-                var prefix = '${element.properties.customParameterName!}'.replace(/${element.properties.id}$/, '');
-                var patternPrefix = new RegExp('^' + prefix);
+                    var jsonData = ${requestBody!};
+                    jsonData.autofillRequestParameter = new Object();
 
-    			$('input[name^="' + prefix + '"]').each(function() {
-    			    var name = $(this).attr('name');
-                    if(name) {
-                        jsonData.autofillRequestParameter[name.replace(patternPrefix, '')] = $(this).val();
-    			    }
-    			});
+                    <#-- BETA -->
+                    // set input fields as request parameter
+                    var prefix = '${element.properties.customParameterName!}'.replace(/${element.properties.id}$/, '');
+                    var patternPrefix = new RegExp('^' + prefix);
 
-    			$.ajax({
-		            url: url,
-		            type : 'POST',
-		            headers : { 'Content-Type' : 'application/json' },
-		            data : JSON.stringify(jsonData)
-		        })
-				.done(function(data) {
-					$('img#${elementId!}_loading').hide();
+                    $('input[name^="' + prefix + '"]').each(function() {
+                        var name = $(this).attr('name');
+                        if(name) {
+                            jsonData.autofillRequestParameter[name.replace(patternPrefix, '')] = $(this).val();
+                        }
+                    });
 
-					<#-- clean up field -->
-                    <#list fieldsMapping?keys! as field>
-                        <#assign fieldType = fieldTypes[field!]!>
-                        <#if fieldType! == 'RADIOS' >
-                            $("input[name$='" + prefix + "${field!}']").each(function() {
-                                $(this).prop('checked', false);
-                            });
-                        <#elseif fieldType! == 'CHECK_BOXES'>
-                            $("input[name$='" + prefix + "${field!}']").each(function() {
-                                var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
-                                $(this).prop('checked', false);
-                            });
-                        <#elseif fieldType! == 'GRIDS'>
-                            $("div.grid[name$='" + prefix + "${field!}']").each(function() {
-                                <#-- remove previous grid row -->
-                                $(this).find('tr.grid-row').each(function() {
-                                    $(this).remove();
+
+                    $.ajax({
+                        url: url,
+                        type : 'POST',
+                        headers : { 'Content-Type' : 'application/json' },
+                        data : JSON.stringify(jsonData)
+                    })
+                    .done(function(data) {
+                        $('img#${elementId!}_loading').hide();
+
+                        <#-- clean up field -->
+                        <#list fieldsMapping?keys! as field>
+                            <#assign fieldType = fieldTypes[field!]!>
+                            <#if fieldType! == 'RADIOS' >
+                                $("input[name$='" + prefix + "${field!}']").each(function() {
+                                    $(this).prop('checked', false);
                                 });
-                            });
-                        <#elseif fieldType! == 'SELECT_BOXES'>
-                            $("select[name$='" + prefix + "${field!}']").each(function() {
-                                $(this).val([]);
-                                $(this).trigger("chosen:updated");
-                            });
-                        <#else>
-                            $("[name$='" + prefix + "${field!}']").each(function() {
-                                $(this).val('');
-                            });
-                        </#if>
-                    </#list>
-
-		         	for(var i in data) {
-		         		if(data[i]) {
-				         <#list fieldsMapping?keys! as field>
-				         	if(data[i].${fieldsMapping[field]!}) {
-					         	<#assign fieldType = fieldTypes[field!]!>
-					         	<#if fieldType == 'LABEL'>
-					         	    $("div.subform-cell-value span[id='" + prefix + "${field!}']").each(function() {
-                                        $(this).html(data[i].${fieldsMapping[field]!});
-                                        $(this).trigger("change");
+                            <#elseif fieldType! == 'CHECK_BOXES'>
+                                $("input[name$='" + prefix + "${field!}']").each(function() {
+                                    var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
+                                    $(this).prop('checked', false);
+                                });
+                            <#elseif fieldType! == 'GRIDS'>
+                                $("div.grid[name$='" + prefix + "${field!}']").each(function() {
+                                    <#-- remove previous grid row -->
+                                    $(this).find('tr.grid-row').each(function() {
+                                        $(this).remove();
                                     });
-					         	<#elseif fieldType! == 'RADIOS' >
-				         			$("input[name$='" + prefix + "${field!}']").each(function() {
-				         				$(this).prop('checked', $(this).val() == data[i].${fieldsMapping[field]!});
-				         			});
-				         		<#elseif fieldType! == 'CHECK_BOXES'>
-				         			$("input[name$='" + prefix + "${field!}']").each(function() {
-				         				var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
-				         				$(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
-				         			});
-				         		<#elseif fieldType! == 'GRIDS'>			         			
-				         			$("div.grid[name$='" + prefix + "${field!}']").each(function() {
-				         				<#-- remove previous grid row -->
-					         			$(this).find('tr.grid-row').each(function() {
-					         				$(this).remove();
-					         			});
-				         			
-				         				try {
-				         					var functionAdd = window[$(this).prop('id') + '_add'];
-				         					if(typeof functionAdd == 'function') {
-						         				var gridData = JSON.parse(data[i].${fieldsMapping[field]!});
-						         				for(var j in gridData) {
-						         					functionAdd({result : JSON.stringify(gridData[j])});
-						         				}
-						         			}
-					         			} catch (e) { }
-					         		});
-				         		<#elseif fieldType! == 'SELECT_BOXES'>
-				         			$("select[name$='" + prefix + "${field!}']").each(function() {
-				    					$(this).val(data[i].${fieldsMapping[field]!}.split(/;/));
-				    					$(this).trigger("chosen:updated");
-				    					$(this).trigger("change");
-				    				});
-				    			<#else>
-				    				$("[name$='" + prefix + "${field!}']").each(function() {
-				    					$(this).val(data[i].${fieldsMapping[field]!});
-				    					$(this).trigger("change");
-				    				});
-				    			</#if>
-				    		}	
-				    	</#list>
-				    	}
-			    	}
-		        })
-				.fail(function() {
-					$('img#${elementId!}_loading').hide();
-		         	<#list element.properties.autofillFields! as field>
-			    		$("[name$='" + prefix + "${field.formField!}']").val("");	
-			    	</#list>
-		    	});
+                                });
+                            <#elseif fieldType! == 'SELECT_BOXES'>
+                                $("select[name$='" + prefix + "${field!}']").each(function() {
+                                    $(this).val([]);
+                                    $(this).trigger("chosen:updated");
+                                });
+                            <#else>
+                                $("[name$='" + prefix + "${field!}']").each(function() {
+                                    $(this).val('');
+                                });
+                            </#if>
+                        </#list>
+
+                        for(var i in data) {
+                            if(data[i]) {
+                             <#list fieldsMapping?keys! as field>
+                                if(data[i].${fieldsMapping[field]!}) {
+                                    <#assign fieldType = fieldTypes[field!]!>
+                                    <#if fieldType == 'LABEL'>
+                                        $("div.subform-cell-value span[id='" + prefix + "${field!}']").each(function() {
+                                            $(this).html(data[i].${fieldsMapping[field]!});
+                                            $(this).trigger("change");
+                                        });
+                                    <#elseif fieldType! == 'RADIOS' >
+                                        $("input[name$='" + prefix + "${field!}']").each(function() {
+                                            $(this).prop('checked', $(this).val() == data[i].${fieldsMapping[field]!});
+                                        });
+                                    <#elseif fieldType! == 'CHECK_BOXES'>
+                                        $("input[name$='" + prefix + "${field!}']").each(function() {
+                                            var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
+                                            $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
+                                        });
+                                    <#elseif fieldType! == 'GRIDS'>
+                                        $("div.grid[name$='" + prefix + "${field!}']").each(function() {
+                                            <#-- remove previous grid row -->
+                                            $(this).find('tr.grid-row').each(function() {
+                                                $(this).remove();
+                                            });
+
+                                            try {
+                                                var functionAdd = window[$(this).prop('id') + '_add'];
+                                                if(typeof functionAdd == 'function') {
+                                                    var gridData = JSON.parse(data[i].${fieldsMapping[field]!});
+                                                    for(var j in gridData) {
+                                                        functionAdd({result : JSON.stringify(gridData[j])});
+                                                    }
+                                                }
+                                            } catch (e) { }
+                                        });
+                                    <#elseif fieldType! == 'SELECT_BOXES'>
+                                        $("select[name$='" + prefix + "${field!}']").each(function() {
+                                            $(this).val(data[i].${fieldsMapping[field]!}.split(/;/));
+                                            $(this).trigger("chosen:updated");
+                                            $(this).trigger("change");
+                                        });
+                                    <#else>
+                                        $("[name$='" + prefix + "${field!}']").each(function() {
+                                            $(this).val(data[i].${fieldsMapping[field]!});
+                                            $(this).trigger("change");
+                                        });
+                                    </#if>
+                                }
+                            </#list>
+                            }
+                        }
+                    })
+                    .fail(function() {
+                        $('img#${elementId!}_loading').hide();
+                        <#list element.properties.autofillFields! as field>
+                            $("[name$='" + prefix + "${field.formField!}']").val("");
+                        </#list>
+                    });
+                </#if>
     		}
 		});
     </script>
