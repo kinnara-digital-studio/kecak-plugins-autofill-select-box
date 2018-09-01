@@ -5,49 +5,14 @@
 	<#assign elementId = elementParamName + element.properties.elementUniqueKey>
 	
     <label class="label">${element.properties.label} <span class="form-cell-validator">${decoration}</span><#if error??> <span class="form-error-message">${error}</span></#if></label>
-    <#if (element.properties.readonly! == 'true' && element.properties.readonlyLabel! == 'true') >
-        <div class="form-cell-value">
-            <#list options as option>
-                <#if values?? && values?seq_contains(option.value!)>
-                    <label class="readonly_label">
-                        <span>${option.label!?html}</span>
-                    </label>
-                </#if>
-            </#list>
-        </div>
-        <div style="clear:both;"></div>
-    <#else>
-        <select class="chosen-select" <#if element.properties.readonly! != 'true'>id="${elementId}"</#if> name="${elementParamName!}" <#if element.properties.multiple! == 'true'>multiple</#if> <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
-            <#list options as option>
-                <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if> <#if element.properties.readonly! == 'true'>disabled</#if>>${option.label!?html}</option>
-            </#list>
-        </select>
-        <img id="${elementId}_loading" src="${request.contextPath}/plugin/${className}/images/spin.gif" height="24" width="24" style="vertical-align: middle; display: none;">
-    </#if>
-    <#if element.properties.readonly! == 'true'>    
-        <#list values as value>
-            <input type="hidden" id="${elementParamName!}" name="${elementParamName!}" value="${value?html}" />
+    
+    <select class="chosen-select" id="${elementId}" name="${elementParamName!}" <#if element.properties.multiple! == 'true'>multiple</#if> <#if error??>class="form-error-cell"</#if>>
+        <#list options as option>
+            <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
         </#list>
-    </#if>
-
-    <#if (element.properties.controlField?? && element.properties.controlField! != "" && !(element.properties.readonly! == 'true' && element.properties.readonlyLabel! == 'true')) >
-        <script type="text/javascript" src="${request.contextPath}/plugin/org.joget.apps.form.lib.SelectBox/js/jquery.dynamicoptions.js"></script>
-        <script type="text/javascript">
-            $(document).ready(function(){
-                $("#${elementId}").dynamicOptions({
-                    controlField : "${element.properties.controlFieldParamName!}",
-                    paramName : "${elementParamName!}",
-                    type : "selectbox",
-                    readonly : "${element.properties.readonly!}",
-                    nonce : "${element.properties.nonce!}",
-                    binderData : "${element.properties.binderData!}",
-                    appId : "${element.properties.appId!}",
-                    appVersion : "${element.properties.appVersion!}",
-                    contextPath : "${request.contextPath}"
-                });
-            });
-        </script>
-    </#if>
+    </select>
+    <img id="${elementId}_loading" src="${request.contextPath}/plugin/${className}/images/spin.gif" height="24" width="24" style="vertical-align: middle; display: none;">
+    
     
     <script type="text/javascript">
     	$(document).ready(function(){
@@ -186,6 +151,10 @@
 			    	</#list>
 		    	});
     		}
-		});
+            <#if (element.properties.readonly! == 'true') >
+                $('#${elementId!} option:not(:selected)').attr('disabled', true);
+                $('#${elementId!}.chosen-select').attr("disabled", true).trigger("chosen:updated");
+            </#if>
+        });
     </script>
 </div>
