@@ -1,6 +1,5 @@
 package com.kinnara.kecakplugins.autofillselectbox;
 
-import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;

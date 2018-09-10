@@ -91,7 +91,8 @@
                             <#elseif fieldType! == 'SELECT_BOXES'>
                                 $("select[name$='" + prefix + "${field!}']").each(function() {
                                     $(this).val([]);
-                                    $(this).trigger("chosen:updated");
+                                    $(this).trigger("chosen:updated"); <#-- if chosen is used -->
+                                    $(this).trigger("change");  <#-- if select2 is used -->
                                 });
                             <#else>
                                 $("[name$='" + prefix + "${field!}']").each(function() {
