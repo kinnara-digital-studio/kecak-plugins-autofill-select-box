@@ -140,7 +140,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 
 	@Override
 	public String getFormBuilderCategory() {
-		return "Kecak Plugins";
+		return "Kecak";
     }
 
 	@Override
