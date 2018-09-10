@@ -15,7 +15,29 @@
             <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
         </#list>
     </select>
+    
+    <#if (element.properties.readonly! != 'true') >
     <img id="${elementId}_loading" src="${request.contextPath}/plugin/${className}/images/spin.gif" height="24" width="24" style="vertical-align: middle; display: none;">
+    </#if>
+    
+        <#if (element.properties.controlField?? && element.properties.controlField! != "" && !(element.properties.readonly! == 'true' && element.properties.readonlyLabel! == 'true')) >
+        <script type="text/javascript" src="${request.contextPath}/plugin/org.joget.apps.form.lib.SelectBox/js/jquery.dynamicoptions.js"></script>
+        <script type="text/javascript">
+            $(document).ready(function(){
+                $("#${elementId}").dynamicOptions({
+                    controlField : "${element.properties.controlFieldParamName!}",
+                    paramName : "${elementParamName!}",
+                    type : "selectbox",
+                    readonly : "${element.properties.readonly!}",
+                    nonce : "${element.properties.nonce!}",
+                    binderData : "${element.properties.binderData!}",
+                    appId : "${element.properties.appId!}",
+                    appVersion : "${element.properties.appVersion!}",
+                    contextPath : "${request.contextPath}"
+                });
+            });
+        </script>
+    </#if>
     
     
     <script type="text/javascript">
@@ -73,29 +95,29 @@
                         <#list fieldsMapping?keys! as field>
                             <#assign fieldType = fieldTypes[field!]!>
                             <#if fieldType! == 'RADIOS' >
-                                $("input[name$='" + prefix + "${field!}']").each(function() {
+                                $("input[name='" + prefix + "${field!}']").each(function() {
                                     $(this).prop('checked', false);
                                 });
                             <#elseif fieldType! == 'CHECK_BOXES'>
-                                $("input[name$='" + prefix + "${field!}']").each(function() {
+                                $("input[name='" + prefix + "${field!}']").each(function() {
                                     var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
                                     $(this).prop('checked', false);
                                 });
                             <#elseif fieldType! == 'GRIDS'>
-                                $("div.grid[name$='" + prefix + "${field!}']").each(function() {
+                                $("div.grid[name='" + prefix + "${field!}']").each(function() {
                                     <#-- remove previous grid row -->
                                     $(this).find('tr.grid-row').each(function() {
                                         $(this).remove();
                                     });
                                 });
                             <#elseif fieldType! == 'SELECT_BOXES'>
-                                $("select[name$='" + prefix + "${field!}']").each(function() {
+                                $("select[name='" + prefix + "${field!}']").each(function() {
                                     $(this).val([]);
                                     $(this).trigger("chosen:updated"); <#-- if chosen is used -->
                                     $(this).trigger("change");  <#-- if select2 is used -->
                                 });
                             <#else>
-                                $("[name$='" + prefix + "${field!}']").each(function() {
+                                $("[name='" + prefix + "${field!}']").each(function() {
                                     $(this).val('');
                                 });
                             </#if>
@@ -112,16 +134,16 @@
                                             $(this).trigger("change");
                                         });
                                     <#elseif fieldType! == 'RADIOS' >
-                                        $("input[name$='" + prefix + "${field!}']").each(function() {
+                                        $("input[name='" + prefix + "${field!}']").each(function() {
                                             $(this).prop('checked', $(this).val() == data[i].${fieldsMapping[field]!});
                                         });
                                     <#elseif fieldType! == 'CHECK_BOXES'>
-                                        $("input[name$='" + prefix + "${field!}']").each(function() {
+                                        $("input[name='" + prefix + "${field!}']").each(function() {
                                             var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
                                             $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
                                         });
                                     <#elseif fieldType! == 'GRIDS'>
-                                        $("div.grid[name$='" + prefix + "${field!}']").each(function() {
+                                        $("div.grid[name='" + prefix + "${field!}']").each(function() {
                                             <#-- remove previous grid row -->
                                             $(this).find('tr.grid-row').each(function() {
                                                 $(this).remove();
@@ -138,13 +160,13 @@
                                             } catch (e) { }
                                         });
                                     <#elseif fieldType! == 'SELECT_BOXES'>
-                                        $("select[name$='" + prefix + "${field!}']").each(function() {
+                                        $("select[name='" + prefix + "${field!}']").each(function() {
                                             $(this).val(data[i].${fieldsMapping[field]!}.split(/;/));
                                             $(this).trigger("chosen:updated");
                                             $(this).trigger("change");
                                         });
                                     <#else>
-                                        $("[name$='" + prefix + "${field!}']").each(function() {
+                                        $("[name='" + prefix + "${field!}']").each(function() {
                                             $(this).val(data[i].${fieldsMapping[field]!});
                                             $(this).trigger("change");
                                         });
@@ -157,7 +179,7 @@
                     .fail(function() {
                         $('img#${elementId!}_loading').hide();
                         <#list element.properties.autofillFields! as field>
-                            $("[name$='" + prefix + "${field.formField!}']").val("");
+                            $("[name='" + prefix + "${field.formField!}']").val("");
                         </#list>
                     });
                 </#if>
