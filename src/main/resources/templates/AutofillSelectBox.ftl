@@ -56,8 +56,10 @@
 			
 			var prefix = "${elementId}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
 			
-			
-    		$('#${elementId}').change(trigger_${elementId}).change();
+
+			<#if element.properties.triggerOnPageLoad! == 'true'>
+    		    $('#${elementId}').change(trigger_${elementId}).change();
+    		</#if>
     		
     		function trigger_${elementId}() {
     		    <#if includeMetaData == false>

@@ -142,6 +142,18 @@
         	required : 'true',
         	description : 'Leave Result Data Field empty to ignore field mapping'
 		},
+        {
+            name : 'triggerOnPageLoad',
+            label : 'Trigger Autofill On Page Load',
+            type : 'checkbox',
+            value : 'true',
+            options : [
+              {
+                value : 'true',
+                label : ''
+              }
+            ]
+        },
 		{
 			name : 'lazyMapping',
 			label : 'Lazy Mapping',
@@ -160,6 +172,8 @@
 			label : 'Fields Mapping',
             description : 'Leave Result Data Field empty if you want skip the mapping',
 			type : 'grid',
+            control_field : 'lazyMapping',
+            control_value : '',
 			columns : [
 				{
 					key : 'formField',
