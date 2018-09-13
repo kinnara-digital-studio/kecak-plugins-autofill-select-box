@@ -1,5 +1,6 @@
 package com.kinnara.kecakplugins.autofillselectbox;
 
+import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;
@@ -26,6 +27,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -35,15 +37,112 @@ import java.util.stream.Collectors;
  * Autofill other elements based on this element's value as ID
  * 
  */
-public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
+public class AutofillSelectBox extends  Element implements FormBuilderPaletteElement, FormAjaxOptionsElement, PluginWebSupport{
+	private final WeakHashMap<String, Form> formCache = new WeakHashMap<>();
+
+	private Element controlElement;
+
 	private final static String PARAMETER_ID = "id";
 	private final static String PARAMETER_APP_ID = "appId";
 	private final static String PARAMETER_APP_VERSION = "appVersion";
 
+	private final static long PAGE_SIZE = 10;
+
 	public void webService(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-		
-		if("POST".equals(request.getMethod())) {
+
+		if("GET".equals(request.getMethod())) {
+			// method for paging
+			final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) AppUtil.getApplicationContext().getBean("appDefinitionDao");
+
+			final String appId = request.getParameter("appId");
+			final String appVersion = request.getParameter("appVersion");
+			final String formDefId = request.getParameter("formDefId");
+			final String[] fieldIds = request.getParameterValues("fieldId");
+			final String search = request.getParameter("search");
+			final Pattern searchPattern = Pattern.compile(search == null ? "" : search, Pattern.CASE_INSENSITIVE);
+			final long page = Long.parseLong(request.getParameter("page"));
+			final String grouping = request.getParameter("grouping");
+
+			final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
+
+			final FormData formData = new FormData();
+			final Form form = generateForm(appDefinition, formDefId);
+
+			final JSONArray jsonResults = new JSONArray();
+			for (String fieldId : fieldIds) {
+				Element element = FormUtil.findElement(fieldId, form, formData);
+
+				if (element == null)
+					continue;
+
+				FormRowSet optionsRowSet;
+				if (element.getOptionsBinder() == null) {
+					optionsRowSet = (FormRowSet) element.getProperty(FormUtil.PROPERTY_OPTIONS);
+				} else {
+					FormUtil.executeOptionBinders(element, formData);
+					optionsRowSet = formData.getOptionsBinderData(element, null);
+				}
+
+				int skip = (int) ((page - 1) * PAGE_SIZE);
+				int pageSize = (int) PAGE_SIZE;
+				for (int i = 0, size = optionsRowSet.size(); i < size && pageSize > 0; i++) {
+					FormRow formRow = optionsRowSet.get(i);
+					if (searchPattern.matcher(formRow.getProperty(FormUtil.PROPERTY_LABEL)).find() && (
+							grouping == null
+									|| grouping.isEmpty()
+									|| grouping.equalsIgnoreCase(formRow.getProperty(FormUtil.PROPERTY_GROUPING)))) {
+
+						if (skip > 0) {
+							skip--;
+						} else {
+							try {
+								JSONObject jsonResult = new JSONObject();
+								jsonResult.put("id", formRow.getProperty(FormUtil.PROPERTY_VALUE));
+								jsonResult.put("text", formRow.getProperty(FormUtil.PROPERTY_LABEL));
+								jsonResults.put(jsonResult);
+								pageSize--;
+							} catch (JSONException ignored) {
+							}
+						}
+					}
+				}
+			}
+
+			// I wonder why these codes don't work; they got some NULL POINTER EXCEPTION
+			//        JSONArray jsonResults = new JSONArray((optionsRowSet).stream()
+			//                .filter(Objects::nonNull)
+			//                .filter(formRow -> searchPattern.matcher(formRow.getProperty(FormUtil.PROPERTY_LABEL)).find())
+			//                .filter(formRow -> grouping == null
+			//                        || formRow.getProperty(FormUtil.PROPERTY_GROUPING) == null
+			//                        || grouping.isEmpty()
+			//                        || formRow.getProperty(FormUtil.PROPERTY_GROUPING).isEmpty()
+			//                        || grouping.equalsIgnoreCase(formRow.getProperty(FormUtil.PROPERTY_GROUPING)))
+			//                .skip((page - 1) * PAGE_SIZE)
+			//                .limit(PAGE_SIZE)
+			//                .map(formRow -> {
+			//                    final Map<String, String> map = new HashMap<>();
+			//                    map.put("id", formRow.getProperty(FormUtil.PROPERTY_VALUE));
+			//                    map.put("text", formRow.getProperty(FormUtil.PROPERTY_LABEL));
+			//                    return map;
+			//                })
+			//                .collect(Collectors.toList()));
+
+			try {
+				JSONObject jsonPagination = new JSONObject();
+				jsonPagination.put("more", jsonResults.length() >= PAGE_SIZE);
+
+				JSONObject jsonData = new JSONObject();
+				jsonData.put("results", jsonResults);
+				jsonData.put("pagination", jsonPagination);
+
+				response.setContentType("application/json");
+				response.getWriter().write(jsonData.toString());
+			} catch (JSONException e) {
+				LogUtil.error(getClassName(), e, e.getMessage());
+				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+			}
+		} else if("POST".equals(request.getMethod())) {
 			ApplicationContext appContext = AppUtil.getApplicationContext();
 			
 			try {
@@ -134,8 +233,20 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 
 	@Override
 	public String getDescription() {
-		return "Kecak Plugins; Artifact ID : " + getClass().getPackage().getImplementationTitle();
+		return getClass().getPackage().getImplementationTitle();
 	}
+
+	/**
+	 * Returns the option key=value pairs for this select box.
+	 * @param formData
+	 * @return
+	 */
+	@SuppressWarnings("rawtypes")
+	public Collection<Map> getOptionMap(FormData formData) {
+		Collection<Map> optionMap = FormUtil.getElementPropertyOptionsMap(this, formData);
+		return optionMap;
+	}
+
 
 	@Override
 	public String getFormBuilderCategory() {
@@ -143,7 +254,19 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
     }
 
 	@Override
+	public int getFormBuilderPosition() {
+		return 0;
+	}
+
+	@Override
+	public String getFormBuilderIcon() {
+		return null;
+	}
+
+	@Override
 	public String renderTemplate(FormData formData, Map dataModel) {
+		dataModel.replace("element", this);
+
         String template = "AutofillSelectBox.ftl";
         Form rootForm = FormUtil.findRootForm(this);
         
@@ -159,6 +282,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 		Collection<Map> optionMap = getOptionMap(formData);
         dataModel.put("options", optionMap);
         dataModel.put("className", getClassName());
+		dataModel.put("width", getPropertyString("size") == null || getPropertyString("size").isEmpty() ? "resolve" : (getPropertyString("size").replaceAll("[^0-9]+]", "") + "%"));
         dataModel.put("keyField", PARAMETER_ID);
         
         Map<String, String> fieldTypes = new HashMap<String, String>();
@@ -183,10 +307,16 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
         dataModel.put("fieldsMapping", fieldsMapping);
 
         AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
-        dataModel.put("appId", appDefinition.getAppId());
-        dataModel.put("appVersion", appDefinition.getVersion());
+        dataModel.put(PARAMETER_APP_ID, appDefinition.getAppId());
+        dataModel.put(PARAMETER_APP_VERSION, appDefinition.getVersion());
 
         dataModel.put("fieldType", getLabel().toUpperCase());
+
+		final Form form = FormUtil.findRootForm(this);
+		if(form != null)
+			dataModel.put("formDefId", form.getPropertyString(FormUtil.PROPERTY_ID));
+
+		dataModel.put("pageSize", PAGE_SIZE);
 
         String html = FormUtil.generateElementHtml(this, formData, template, dataModel);
         return html;
@@ -214,6 +344,30 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 		}
 		
 		return fieldsMapping; 
+	}
+
+	protected void dynamicOptions(FormData formData) {
+		if (getControlElement(formData) != null) {
+			setProperty("controlFieldParamName", FormUtil.getElementParameterName(getControlElement(formData)));
+
+			FormUtil.setAjaxOptionsElementProperties(this, formData);
+		}
+	}
+
+	@Override
+	public Element getControlElement(FormData formData) {
+		if (controlElement == null) {
+			if (getPropertyString("controlField") != null && !getPropertyString("controlField").isEmpty()) {
+				Form form = FormUtil.findRootForm(this);
+				controlElement = FormUtil.findElement(getPropertyString("controlField"), form, formData);
+			}
+		}
+		return controlElement;
+	}
+
+	@Override
+	public String getFormBuilderTemplate() {
+		return null;
 	}
 
 	/**
@@ -326,13 +480,35 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport{
 			String key = i.next();
 			try {
 				formData.addRequestParameterValues(key, new String[] { jsonRequestParameter.getString(key) });
-			} catch (JSONException e) {
-				// do nothing
-			}
+			} catch (JSONException ignored) { }
 		}
 
 		formData = formService.executeFormLoadBinders(form, formData);
 		FormRowSet rowSet = formData.getLoadBinderData(form);		
 		return formRowSetToJson(rowSet);
+	}
+
+	private Form generateForm(AppDefinition appDef, String formDefId) {
+		ApplicationContext appContext = AppUtil.getApplicationContext();
+		FormService formService = (FormService) appContext.getBean("formService");
+		FormDefinitionDao formDefinitionDao = (FormDefinitionDao)appContext.getBean("formDefinitionDao");
+
+		// check in cache
+		if(formCache.containsKey(formDefId))
+			return formCache.get(formDefId);
+
+		// proceed without cache
+		if (appDef != null && formDefId != null && !formDefId.isEmpty()) {
+			FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
+			if (formDef != null) {
+				String json = formDef.getJson();
+				Form form = (Form)formService.createElementFromJson(json);
+
+				formCache.put(formDefId, form);
+
+				return form;
+			}
+		}
+		return null;
 	}
 }

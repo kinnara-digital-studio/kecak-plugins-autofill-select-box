@@ -1,6 +1,7 @@
 <div class="form-cell" ${elementMetaData!}>
-	<link rel="stylesheet" href="${request.contextPath}/plugin/${className}/css/chosen.min.css">
-	<script src="${request.contextPath}/plugin/${className}/js/chosen.jquery.min.js" type="text/javascript"></script>
+	<link rel="stylesheet" href="${request.contextPath}/plugin/${className}/bower_components/select2/dist/css/select2.min.css" />
+    <script type="text/javascript" src="${request.contextPath}/plugin/${className}/bower_components/select2/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="${request.contextPath}/js/json/formUtil.js"></script>
 	
 	<#assign elementId = elementParamName + element.properties.elementUniqueKey>
 	
@@ -10,17 +11,17 @@
         <span class="form-floating-label">${fieldType}</span>
     </#if>
 
-    <select class="chosen-select" id="${elementId}" name="${elementParamName!}" <#if element.properties.multiple! == 'true'>multiple</#if> <#if error??>class="form-error-cell"</#if>>
+    <select class="js-select2" id="${elementId}" name="${elementParamName!}" <#if element.properties.multiple! == 'true'>multiple</#if> <#if error??>class="form-error-cell"</#if>>
         <#list options as option>
             <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
         </#list>
     </select>
     
     <#if (element.properties.readonly! != 'true') >
-    <img id="${elementId}_loading" src="${request.contextPath}/plugin/${className}/images/spin.gif" height="24" width="24" style="vertical-align: middle; display: none;">
+        <img id="${elementId}_loading" src="${request.contextPath}/plugin/${className}/images/spin.gif" height="24" width="24" style="vertical-align: middle; display: none;">
     </#if>
     
-        <#if (element.properties.controlField?? && element.properties.controlField! != "" && !(element.properties.readonly! == 'true' && element.properties.readonlyLabel! == 'true')) >
+    <#if (element.properties.controlField?? && element.properties.controlField! != "" && !(element.properties.readonly! == 'true' && element.properties.readonlyLabel! == 'true')) >
         <script type="text/javascript" src="${request.contextPath}/plugin/org.joget.apps.form.lib.SelectBox/js/jquery.dynamicoptions.js"></script>
         <script type="text/javascript">
             $(document).ready(function(){
@@ -42,23 +43,44 @@
     
     <script type="text/javascript">
     	$(document).ready(function(){
-	        var config = {
-			  '#${elementId}.chosen-select'           : {},
-			  '#${elementId}.chosen-select-deselect'  : {allow_single_deselect:true},
-			  '#${elementId}.chosen-select-no-single' : {disable_search_threshold:10},
-			  '#${elementId}.chosen-select-no-results': {no_results_text:'Oops, nothing found!'},
-			  '#${elementId}.chosen-select-width'     : {width:"95%"}
-			}
-			
-			for (var selector in config) {
-			  $(selector).chosen({width : "${element.properties.size!}%"});
-			}
+	        $('#${elementId!}.js-select2').select2({
+                placeholder: '${element.properties.placeholder!}',
+                width : '${width!}',
+                theme : 'classic',
+                language : {
+                   errorLoading: () => '${element.properties.messageErrorLoading!}',
+                   loadingMore: () => '${element.properties.messageLoadingMore!}',
+                   noResults: () => '${element.properties.messageNoResults!}',
+                   searching: () => '${element.properties.messageSearching!}'
+                }
+
+                <#if element.properties.lazyLoading! == 'true' >
+                    ,ajax: {
+                        url: '${request.contextPath}/web/json/plugin/${className}/service',
+                        delay : 500,
+                        dataType: 'json',
+                        data : function(params) {
+                            return {
+                                search: params.term,
+                                appId : '${appId!}',
+                                appVersion : '${appVersion!}',
+                                formDefId : '${formDefId!}',
+                                fieldId : '${element.properties.id!}',
+                                <#if element.properties.controlField! != '' >
+                                    grouping : FormUtil.getValue('${element.properties.controlField!}'),
+                                </#if>
+                                page : params.page || 1
+                            };
+                        }
+                    }
+                </#if>
+            });
 			
 			var prefix = "${elementId}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
-			
 
+            $('#${elementId}').change(trigger_${elementId});
 			<#if element.properties.triggerOnPageLoad! == 'true'>
-    		    $('#${elementId}').change(trigger_${elementId}).change();
+    		    $('#${elementId}').change();
     		</#if>
     		
     		function trigger_${elementId}() {
@@ -188,7 +210,7 @@
     		}
             <#if (element.properties.readonly! == 'true') >
                 $('#${elementId!} option:not(:selected)').attr('disabled', true);
-                $('#${elementId!}.chosen-select').attr("disabled", true).trigger("chosen:updated");
+                $('#${elementId!}.js-select2').attr("disabled", true).trigger("change");
             </#if>
         });
     </script>
