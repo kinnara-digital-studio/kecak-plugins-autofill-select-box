@@ -12,9 +12,17 @@
     </#if>
 
     <select class="js-select2" id="${elementId}" name="${elementParamName!}" <#if element.properties.multiple! == 'true'>multiple</#if> <#if error??>class="form-error-cell"</#if>>
-        <#list options as option>
-            <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
-        </#list>
+        <#if element.properties.lazyLoading! != 'true' >
+            <!-- lazy loading -->
+            <#list options as option>
+                <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
+            </#list>
+        <#else>
+            <!-- values -->
+            <#list optionsValues as option>
+                <option value="${option.value!?html}" grouping="${option.grouping!?html}" selected>${option.label!?html}</option>
+            </#list>
+        </#if>
     </select>
     
     <#if (element.properties.readonly! != 'true') >
@@ -84,7 +92,7 @@
     		</#if>
     		
     		function trigger_${elementId}() {
-    		    <#if includeMetaData == false>
+    		    <#if includeMetaData == false || requestBody?? >
                     var primaryKey = $(this).val();
                     var url = "${request.contextPath}/web/json/plugin/${className}/service?${keyField}=" + primaryKey + "&appId=${appId}&appVersion=${appVersion}";
 
@@ -185,9 +193,8 @@
                                         });
                                     <#elseif fieldType! == 'SELECT_BOXES'>
                                         $("select[name='" + prefix + "${field!}']").each(function() {
-                                            $(this).val(data[i].${fieldsMapping[field]!}.split(/;/));
+                                            $(this).val(data[i].${fieldsMapping[field]!}.split(/;/)).trigger("change");
                                             $(this).trigger("chosen:updated");
-                                            $(this).trigger("change");
                                         });
                                     <#else>
                                         $("[name='" + prefix + "${field!}']").each(function() {

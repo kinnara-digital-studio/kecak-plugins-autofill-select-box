@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
  * Autofill other elements based on this element's value as ID
  * 
  */
-public class AutofillSelectBox extends  Element implements FormBuilderPaletteElement, FormAjaxOptionsElement, PluginWebSupport{
+public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 	private final WeakHashMap<String, Form> formCache = new WeakHashMap<>();
 
 	private Element controlElement;
@@ -236,32 +236,10 @@ public class AutofillSelectBox extends  Element implements FormBuilderPaletteEle
 		return getClass().getPackage().getImplementationTitle();
 	}
 
-	/**
-	 * Returns the option key=value pairs for this select box.
-	 * @param formData
-	 * @return
-	 */
-	@SuppressWarnings("rawtypes")
-	public Collection<Map> getOptionMap(FormData formData) {
-		Collection<Map> optionMap = FormUtil.getElementPropertyOptionsMap(this, formData);
-		return optionMap;
-	}
-
-
 	@Override
 	public String getFormBuilderCategory() {
 		return "Kecak";
     }
-
-	@Override
-	public int getFormBuilderPosition() {
-		return 0;
-	}
-
-	@Override
-	public String getFormBuilderIcon() {
-		return null;
-	}
 
 	@Override
 	public String renderTemplate(FormData formData, Map dataModel) {
@@ -275,12 +253,30 @@ public class AutofillSelectBox extends  Element implements FormBuilderPaletteEle
         // set value
         String[] valueArray = FormUtil.getElementPropertyValues(this, formData);
         List<String> values = Arrays.asList(valueArray);
-        dataModel.put("values", values);
+		dataModel.put("values", values);
 
-        // set options
-        @SuppressWarnings("rawtypes")
-		Collection<Map> optionMap = getOptionMap(formData);
-        dataModel.put("options", optionMap);
+		final List<Map<String, String>> optionMap = getOptionMap(formData)
+				.stream()
+				.map(m -> (Map<String,String>)m)
+				.collect(Collectors.toList());
+		dataModel.put("options", optionMap);
+
+		Collection<Map<String, String>> valuesMap = values.stream()
+				.filter(s -> !s.isEmpty())
+				.map(s -> {
+					Map<String, String> map = new HashMap<>();
+					map.put("value", s);
+
+					final Map<String, String> lookingFor = new HashMap<>();
+					lookingFor.put("value", s);
+
+					int index = Collections.binarySearch(optionMap, lookingFor, Comparator.comparing(m -> m.get("value")));
+					map.put("label", index >= 0 ? optionMap.get(index).get("label") : s);
+					return map;
+				})
+				.collect(Collectors.toList());
+		dataModel.put("optionsValues", valuesMap);
+
         dataModel.put("className", getClassName());
 		dataModel.put("width", getPropertyString("size") == null || getPropertyString("size").isEmpty() ? "resolve" : (getPropertyString("size").replaceAll("[^0-9]+]", "") + "%"));
         dataModel.put("keyField", PARAMETER_ID);
@@ -288,17 +284,17 @@ public class AutofillSelectBox extends  Element implements FormBuilderPaletteEle
         Map<String, String> fieldTypes = new HashMap<String, String>();
         getFieldTypes(rootForm, fieldTypes);
         dataModel.put("fieldTypes", fieldTypes);
-        
-        try {
-        	JSONObject requestBody = new JSONObject();
-        	Map<String, Object> autofillLoadBinder = (Map<String, Object>)getProperty("autofillLoadBinder");
-        	if(autofillLoadBinder != null)
-        		requestBody.put("autofillLoadBinder", FormUtil.generatePropertyJsonObject(autofillLoadBinder));
-        	
-        	if(rootForm != null)
-        		requestBody.put("autofillForm", new JSONObject(FormUtil.generateElementJson(rootForm)));
-        	
-        	dataModel.put("requestBody", requestBody);
+
+		try {
+			JSONObject requestBody = new JSONObject();
+			if (rootForm != null)
+				requestBody.put("autofillForm", new JSONObject(FormUtil.generateElementJson(rootForm)));
+
+			Map<String, Object> autofillLoadBinder = (Map<String, Object>) getProperty("autofillLoadBinder");
+			if (autofillLoadBinder != null)
+				requestBody.put("autofillLoadBinder", FormUtil.generatePropertyJsonObject(autofillLoadBinder));
+
+			dataModel.put("requestBody", requestBody);
 		} catch (Exception e) {
 			LogUtil.error(getClassName(), e, "Error generating form json");
 		}
@@ -332,15 +328,17 @@ public class AutofillSelectBox extends  Element implements FormBuilderPaletteEle
 						&& id != null && !id.isEmpty() && !id.equals(selectBoxId);
 			});
 		}
-		
-		for(Object o : autofillFields) {
-			Map<String, String> column = (Map<String, String>)o;
-			String formField = column.get("formField");
-			String resultField = column.get("resultField");
-			if(!resultField.isEmpty())
-				fieldsMapping.put(formField, resultField);
-			else
-				fieldsMapping.remove(formField);
+
+		if(autofillFields != null) {
+			for (Object o : autofillFields) {
+				Map<String, String> column = (Map<String, String>) o;
+				String formField = column.get("formField");
+				String resultField = column.get("resultField");
+				if (!resultField.isEmpty())
+					fieldsMapping.put(formField, resultField);
+				else
+					fieldsMapping.remove(formField);
+			}
 		}
 		
 		return fieldsMapping; 
@@ -367,7 +365,7 @@ public class AutofillSelectBox extends  Element implements FormBuilderPaletteEle
 
 	@Override
 	public String getFormBuilderTemplate() {
-		return null;
+		return "<label class='label'>" + getName() + "</label><select><option>Option</option></select>";
 	}
 
 	/**

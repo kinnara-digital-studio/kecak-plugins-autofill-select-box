@@ -1,11 +1,15 @@
-[{
-    title : '@@autofillFormBinder.editFormBinder@@',
-    properties : [{
-		name : 'formDefId',
-		label : '@@autofillFormBinder.formDefId@@',
-		type : 'selectbox',
-		required : 'true',
-		options_ajax : '[CONTEXT_PATH]/web/json/console/app[APP_PATH]/forms/options',
-		url : '[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions'
-	}]
-}]
+[
+	{
+		title : '@@autofillFormBinder.editFormBinder@@',
+		properties : [
+			{
+				name : 'formDefId',
+				label : '@@autofillFormBinder.formDefId@@',
+				type : 'selectbox',
+				required : 'true',
+				options_ajax : '[CONTEXT_PATH]/web/json/console/app[APP_PATH]/forms/options',
+				url : '[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions'
+			}
+		]
+	}
+]
