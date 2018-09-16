@@ -61,7 +61,7 @@
         </script>
     </#if>
     
-    <#if element.properties.readonly! == 'true' >
+    <#if element.properties.readonly! != 'true' >
         <script type="text/javascript">
             $(document).ready(function(){
                 $('#${elementId!}.js-select2').select2({
