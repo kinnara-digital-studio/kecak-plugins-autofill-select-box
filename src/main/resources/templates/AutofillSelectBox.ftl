@@ -142,28 +142,17 @@
                                 <#if fieldType! == 'RADIOS' >
                                     $("input[name='" + prefix + "${field!}']").each(function() {
                                         $(this).prop('checked', false);
-
-                                        <#if element.properties.targetFieldAsReadonly! == 'true'>
-                                            $(this).attr('readonly', 'readonly');
-                                        </#if>
                                     });
                                 <#elseif fieldType! == 'CHECK_BOXES'>
                                     $("input[name='" + prefix + "${field!}']").each(function() {
                                         var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
                                         $(this).prop('checked', false);
-
-                                        <#if element.properties.targetFieldAsReadonly! == 'true'>
-                                            $(this).attr('readonly', 'readonly');
-                                        </#if>
                                     });
                                 <#elseif fieldType! == 'GRIDS'>
                                     $("div.grid[name='" + prefix + "${field!}']").each(function() {
                                         <#-- remove previous grid row -->
                                         $(this).find('tr.grid-row').each(function() {
                                             $(this).remove();
-                                            <#if element.properties.targetFieldAsReadonly! == 'true'>
-                                                $(this).attr('readonly', 'readonly');
-                                            </#if>
                                         });
                                     });
                                 <#elseif fieldType! == 'SELECT_BOXES'>
@@ -171,16 +160,10 @@
                                         $(this).val([]);
                                         $(this).trigger("chosen:updated"); <#-- if chosen is used -->
                                         $(this).trigger("change");  <#-- if select2 is used -->
-                                        <#if element.properties.targetFieldAsReadonly! == 'true'>
-                                            $(this).attr('readonly', 'readonly');
-                                        </#if>
                                     });
                                 <#else>
                                     $("[name='" + prefix + "${field!}']").each(function() {
                                         $(this).val('');
-                                        <#if element.properties.targetFieldAsReadonly! == 'true'>
-                                            $(this).attr('readonly', 'readonly');
-                                        </#if>
                                     });
                                 </#if>
                             </#list>
@@ -194,7 +177,9 @@
                                             $("div.subform-cell-value span[id='" + prefix + "${field!}']").each(function() {
                                                 $(this).html(data[i].${fieldsMapping[field]!});
                                                 $(this).trigger("change");
-
+                                                <#if element.properties.targetFieldAsReadonly! == 'true'>
+                                                    $(this).attr('readonly', 'readonly');
+                                                </#if>
                                             });
                                         <#elseif fieldType! == 'RADIOS' >
                                             $("input[name='" + prefix + "${field!}']").each(function() {
@@ -204,6 +189,9 @@
                                             $("input[name='" + prefix + "${field!}']").each(function() {
                                                 var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
                                                 $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
+                                                <#if element.properties.targetFieldAsReadonly! == 'true'>
+                                                    $(this).attr('readonly', 'readonly');
+                                                </#if>
                                             });
                                         <#elseif fieldType! == 'GRIDS'>
                                             $("div.grid[name='" + prefix + "${field!}']").each(function() {
@@ -226,11 +214,17 @@
                                             $("select[name='" + prefix + "${field!}']").each(function() {
                                                 $(this).val(data[i].${fieldsMapping[field]!}.split(/;/)).trigger("change");
                                                 $(this).trigger("chosen:updated");
+                                                <#if element.properties.targetFieldAsReadonly! == 'true'>
+                                                    $(this).attr('readonly', 'readonly');
+                                                </#if>
                                             });
                                         <#else>
                                             $("[name='" + prefix + "${field!}']").each(function() {
                                                 $(this).val(data[i].${fieldsMapping[field]!});
                                                 $(this).trigger("change");
+                                                <#if element.properties.targetFieldAsReadonly! == 'true'>
+                                                    $(this).attr('readonly', 'readonly');
+                                                </#if>
                                             });
                                         </#if>
                                     }
