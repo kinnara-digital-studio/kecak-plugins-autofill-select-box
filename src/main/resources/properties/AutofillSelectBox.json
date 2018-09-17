@@ -240,6 +240,18 @@
 					label : 'Result Data Field'
 				}
 			]
-		}
+		},
+        {
+          name : 'targetFieldAsReadonly',
+          label : 'Target Field As Readonly',
+          type : 'checkbox',
+          value : '',
+          options : [
+            {
+              value : 'true',
+              label : ''
+            }
+          ]
+        }
 	]
 }]
