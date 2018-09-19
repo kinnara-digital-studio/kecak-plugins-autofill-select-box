@@ -13,7 +13,7 @@
 
     <#if (element.properties.readonly! == 'true' && element.properties.readonlyLabel! == 'true') >
         <div class="form-cell-value">
-            <#list options as option>
+            <#list options! as option>
                 <#if values?? && values?seq_contains(option.value!)>
                     <label class="readonly_label">
                         <span>${option.label!?html}</span>
@@ -26,14 +26,14 @@
     <#else>
         <select class="js-select2" id="${elementId}" name="${elementParamName!}" <#if element.properties.multiple! == 'true'>multiple</#if> <#if error??>class="form-error-cell"</#if>>
             <#if element.properties.lazyLoading! != 'true' >
-                <!-- lazy loading -->
-                <#list options as option>
+                <#list options! as option>
                     <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
                 </#list>
             <#else>
-                <!-- values -->
-                <#list optionsValues as option>
-                    <option value="${option.value!?html}" grouping="${option.grouping!?html}" selected>${option.label!?html}</option>
+                <#list options! as option>
+                    <#if values?? && values?seq_contains(option.value!) || option.value == ''>
+                        <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
+                    </#if>
                 </#list>
             </#if>
         </select>
@@ -65,7 +65,7 @@
         <script type="text/javascript">
             $(document).ready(function(){
                 $('#${elementId!}.js-select2').select2({
-                    placeholder: '${element.properties.placeholder!}',
+                    //placeholder: '${element.properties.placeholder!}',
                     width : '${width!}',
                     theme : 'classic',
                     language : {
@@ -102,6 +102,14 @@
                 $('#${elementId}').change(trigger_${elementId});
                 <#if element.properties.triggerOnPageLoad! == 'true'>
                     $('#${elementId}').change();
+                </#if>
+
+                <#if element.properties.targetFieldAsReadonly! == 'true'>
+                    <#list fieldsMapping?keys! as field>
+                        $("[name='" + prefix + "${field!}']").each(function() {
+                            $(this).attr('readonly', 'readonly');
+                        });
+                    </#list>
                 </#if>
 
                 function trigger_${elementId}() {
@@ -177,9 +185,6 @@
                                             $("div.subform-cell-value span[id='" + prefix + "${field!}']").each(function() {
                                                 $(this).html(data[i].${fieldsMapping[field]!});
                                                 $(this).trigger("change");
-                                                <#if element.properties.targetFieldAsReadonly! == 'true'>
-                                                    $(this).attr('readonly', 'readonly');
-                                                </#if>
                                             });
                                         <#elseif fieldType! == 'RADIOS' >
                                             $("input[name='" + prefix + "${field!}']").each(function() {
@@ -189,9 +194,6 @@
                                             $("input[name='" + prefix + "${field!}']").each(function() {
                                                 var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
                                                 $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
-                                                <#if element.properties.targetFieldAsReadonly! == 'true'>
-                                                    $(this).attr('readonly', 'readonly');
-                                                </#if>
                                             });
                                         <#elseif fieldType! == 'GRIDS'>
                                             $("div.grid[name='" + prefix + "${field!}']").each(function() {
@@ -214,17 +216,11 @@
                                             $("select[name='" + prefix + "${field!}']").each(function() {
                                                 $(this).val(data[i].${fieldsMapping[field]!}.split(/;/)).trigger("change");
                                                 $(this).trigger("chosen:updated");
-                                                <#if element.properties.targetFieldAsReadonly! == 'true'>
-                                                    $(this).attr('readonly', 'readonly');
-                                                </#if>
                                             });
                                         <#else>
                                             $("[name='" + prefix + "${field!}']").each(function() {
                                                 $(this).val(data[i].${fieldsMapping[field]!});
                                                 $(this).trigger("change");
-                                                <#if element.properties.targetFieldAsReadonly! == 'true'>
-                                                    $(this).attr('readonly', 'readonly');
-                                                </#if>
                                             });
                                         </#if>
                                     }

@@ -246,6 +246,8 @@
           label : 'Target Field As Readonly',
           type : 'checkbox',
           value : '',
+          control_field : 'lazyMapping',
+          control_value : '',
           options : [
             {
               value : 'true',
