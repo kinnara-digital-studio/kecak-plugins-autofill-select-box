@@ -5,6 +5,7 @@ import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;
 import org.joget.apps.app.service.AppUtil;
+import org.joget.apps.datalist.model.DataList;
 import org.joget.apps.form.lib.CheckBox;
 import org.joget.apps.form.lib.Radio;
 import org.joget.apps.form.lib.SelectBox;
@@ -27,6 +28,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -384,17 +386,17 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 	 * Recursively iterating elements' children
 	 * @param fieldsMapping
 	 * @param element
-	 * @param conditionCallback
+	 * @param condition
 	 */
-	private void iterateLazyFieldsMapping(Map<String, String> fieldsMapping, Element element, ConditionCallback conditionCallback) {
+	private void iterateLazyFieldsMapping(Map<String, String> fieldsMapping, Element element, Predicate<Element> condition) {
 		if(element != null) {
 			for(Element child : element.getChildren()) {
-				if(conditionCallback.isFulfillCondition(child)) {
+				if(condition.test(child)) {
 					String id = child.getPropertyString(FormUtil.PROPERTY_ID);
 					fieldsMapping.put(id, id);
 				}
 			
-				iterateLazyFieldsMapping(fieldsMapping, child, conditionCallback);
+				iterateLazyFieldsMapping(fieldsMapping, child, condition);
 			}
 		}
 	}

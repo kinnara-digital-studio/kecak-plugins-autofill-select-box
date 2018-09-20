@@ -144,87 +144,89 @@
                         .done(function(data) {
                             $('img#${elementId!}_loading').hide();
 
-                            <#-- clean up field -->
-                            <#list fieldsMapping?keys! as field>
-                                <#assign fieldType = fieldTypes[field!]!>
-                                <#if fieldType! == 'RADIOS' >
-                                    $("input[name='" + prefix + "${field!}']").each(function() {
-                                        $(this).prop('checked', false);
-                                    });
-                                <#elseif fieldType! == 'CHECK_BOXES'>
-                                    $("input[name='" + prefix + "${field!}']").each(function() {
-                                        var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
-                                        $(this).prop('checked', false);
-                                    });
-                                <#elseif fieldType! == 'GRIDS'>
-                                    $("div.grid[name='" + prefix + "${field!}']").each(function() {
-                                        <#-- remove previous grid row -->
-                                        $(this).find('tr.grid-row').each(function() {
-                                            $(this).remove();
+                            <#-- clean up field if no lazy mapping -->
+                            <#if element.properties.lazyMapping! != 'true' >
+                                <#list fieldsMapping?keys! as field>
+                                    <#assign fieldType = fieldTypes[field!]!>
+                                    <#if fieldType! == 'RADIOS' >
+                                        $("input[name='" + prefix + "${field!}']).each(function() {
+                                            $(this).prop('checked', false);
                                         });
-                                    });
-                                <#elseif fieldType! == 'SELECT_BOXES'>
-                                    $("select[name='" + prefix + "${field!}']").each(function() {
-                                        $(this).val([]);
-                                        $(this).trigger("chosen:updated"); <#-- if chosen is used -->
-                                        $(this).trigger("change");  <#-- if select2 is used -->
-                                    });
-                                <#else>
-                                    $("[name='" + prefix + "${field!}']").each(function() {
-                                        $(this).val('');
-                                    });
-                                </#if>
-                            </#list>
+                                    <#elseif fieldType! == 'CHECK_BOXES'>
+                                        $("input[name='" + prefix + "${field!}']").each(function() {
+                                            var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
+                                            $(this).prop('checked', false);
+                                        });
+                                    <#elseif fieldType! == 'GRIDS'>
+                                        $("div.grid[name='" + prefix + "${field!}']").each(function() {
+                                            <#-- remove previous grid row -->
+                                            $(this).find('tr.grid-row').each(function() {
+                                                $(this).remove();
+                                            });
+                                        });
+                                    <#elseif fieldType! == 'SELECT_BOXES'>
+                                        $("select[name='" + prefix + "${field!}']").each(function() {
+                                            $(this).val([]);
+                                            $(this).trigger("chosen:updated"); <#-- if chosen is used -->
+                                            $(this).trigger("change");  <#-- if select2 is used -->
+                                        });
+                                    <#else>
+                                        $("[name='" + prefix + "${field!}']").each(function() {
+                                            $(this).val('');
+                                        });
+                                    </#if>
+                                </#list>
+                            </#if>
 
                             for(var i in data) {
                                 if(data[i]) {
-                                 <#list fieldsMapping?keys! as field>
-                                    if(data[i].${fieldsMapping[field]!}) {
-                                        <#assign fieldType = fieldTypes[field!]!>
-                                        <#if fieldType == 'LABEL'>
-                                            $("div.subform-cell-value span[id='" + prefix + "${field!}']").each(function() {
-                                                $(this).html(data[i].${fieldsMapping[field]!});
-                                                $(this).trigger("change");
-                                            });
-                                        <#elseif fieldType! == 'RADIOS' >
-                                            $("input[name='" + prefix + "${field!}']").each(function() {
-                                                $(this).prop('checked', $(this).val() == data[i].${fieldsMapping[field]!});
-                                            });
-                                        <#elseif fieldType! == 'CHECK_BOXES'>
-                                            $("input[name='" + prefix + "${field!}']").each(function() {
-                                                var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
-                                                $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
-                                            });
-                                        <#elseif fieldType! == 'GRIDS'>
-                                            $("div.grid[name='" + prefix + "${field!}']").each(function() {
-                                                <#-- remove previous grid row -->
-                                                $(this).find('tr.grid-row').each(function() {
-                                                    $(this).remove();
+                                    <#list fieldsMapping?keys! as field>
+                                        if(data[i].${fieldsMapping[field]!} || data[i].${fieldsMapping[field]!} == '') {
+                                            <#assign fieldType = fieldTypes[field!]!>
+                                            <#if fieldType == 'LABEL'>
+                                                $("div.subform-cell-value span[id='" + prefix + "${field!}']").each(function() {
+                                                    $(this).html(data[i].${fieldsMapping[field]!});
+                                                    $(this).trigger("change");
                                                 });
+                                            <#elseif fieldType! == 'RADIOS' >
+                                                $("input[name='" + prefix + "${field!}']").each(function() {
+                                                    $(this).prop('checked', $(this).val() == data[i].${fieldsMapping[field]!});
+                                                });
+                                            <#elseif fieldType! == 'CHECK_BOXES'>
+                                                $("input[name='" + prefix + "${field!}']").each(function() {
+                                                    var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
+                                                    $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
+                                                });
+                                            <#elseif fieldType! == 'GRIDS'>
+                                                $("div.grid[name='" + prefix + "${field!}']").each(function() {
+                                                    <#-- remove previous grid row -->
+                                                    $(this).find('tr.grid-row').each(function() {
+                                                        $(this).remove();
+                                                    });
 
-                                                try {
-                                                    var functionAdd = window[$(this).prop('id') + '_add'];
-                                                    if(typeof functionAdd == 'function') {
-                                                        var gridData = JSON.parse(data[i].${fieldsMapping[field]!});
-                                                        for(var j in gridData) {
-                                                            functionAdd({result : JSON.stringify(gridData[j])});
+                                                    try {
+                                                        var functionAdd = window[$(this).prop('id') + '_add'];
+                                                        if(typeof functionAdd == 'function') {
+                                                            var gridData = JSON.parse(data[i].${fieldsMapping[field]!});
+                                                            for(var j in gridData) {
+                                                                functionAdd({result : JSON.stringify(gridData[j])});
+                                                            }
                                                         }
-                                                    }
-                                                } catch (e) { }
-                                            });
-                                        <#elseif fieldType! == 'SELECT_BOXES'>
-                                            $("select[name='" + prefix + "${field!}']").each(function() {
-                                                $(this).val(data[i].${fieldsMapping[field]!}.split(/;/)).trigger("change");
-                                                $(this).trigger("chosen:updated");
-                                            });
-                                        <#else>
-                                            $("[name='" + prefix + "${field!}']").each(function() {
-                                                $(this).val(data[i].${fieldsMapping[field]!});
-                                                $(this).trigger("change");
-                                            });
-                                        </#if>
-                                    }
-                                </#list>
+                                                    } catch (e) { }
+                                                });
+                                            <#elseif fieldType! == 'SELECT_BOXES'>
+                                                $("select[name='" + prefix + "${field!}']").each(function() {
+                                                    $(this).val(data[i].${fieldsMapping[field]!}.split(/;/)).trigger("change");
+                                                    $(this).trigger("chosen:updated");
+                                                });
+                                            <#else>
+                                                $("[name='" + prefix + "${field!}']").each(function() {
+                                                    $(this).val(data[i].${fieldsMapping[field]!});
+                                                    $(this).trigger("change");
+                                                });
+                                            </#if>
+                                        }
+                                    </#list>
                                 }
                             }
                         })

@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationContext;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * 
@@ -24,7 +25,6 @@ import java.util.Map;
  *
  */
 public class AutofillFormBinder extends FormBinder  implements FormLoadElementBinder {
-	private final Map<String, Form> formCache = new HashMap<>();
 	
 	public FormRowSet load(Element element, String primaryKey, FormData formData) {
 		FormRowSet rowSet = new FormRowSet();
@@ -38,7 +38,7 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 				.findFirst()
 				.orElse(null);
 
-		Form form = generateForm(appDefinition, getPropertyString("formDefId"));
+		Form form = Utilities.generateForm(appDefinition, getPropertyString("formDefId"));
 		
 		if(form != null) {
 			rowSet.add(loadFormData(form, formData));
@@ -70,30 +70,6 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 
 	public String getDescription() {
 		return "Kecak Plugins; Default Autofill Form Binder; Artifact ID : " + getClass().getPackage().getImplementationTitle();
-	}
-
-	private Form generateForm(AppDefinition appDef, String formDefId) {
-		ApplicationContext appContext = AppUtil.getApplicationContext();
-		FormService formService = (FormService) appContext.getBean("formService");
-		FormDefinitionDao formDefinitionDao = (FormDefinitionDao)appContext.getBean("formDefinitionDao");
-		
-    	// check in cache
-    	if(formCache.containsKey(formDefId))
-    		return formCache.get(formDefId);
-    	
-    	// proceed without cache
-        if (appDef != null && formDefId != null && !formDefId.isEmpty()) {
-            FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
-            if (formDef != null) {
-                String json = formDef.getJson();
-				Form form = (Form)formService.createElementFromJson(json);
-
-				formCache.put(formDefId, form);
-                
-                return form;
-            }
-        }
-        return null;
 	}
 	
 	private FormRow loadFormData(Form form, FormData formData) {		
