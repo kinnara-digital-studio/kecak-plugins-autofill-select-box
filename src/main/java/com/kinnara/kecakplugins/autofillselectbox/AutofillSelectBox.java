@@ -161,6 +161,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 				FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(autofillLoadBinder.getString(FormUtil.PROPERTY_CLASS_NAME));
 								
 				if(form != null && loadBinder != null) {
+					LogUtil.info(getClassName(), "form ["+form.getPropertyString("id")+"]");
 					try {
 						Map<String, Object> properties = FormUtil.parsePropertyFromJsonObject(autofillLoadBinder);
 						loadBinder.setProperties(properties);
@@ -248,7 +249,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 
         String template = "AutofillSelectBox.ftl";
         Form rootForm = FormUtil.findRootForm(this);
-        
+
         dynamicOptions(formData);
 
         // set value
@@ -282,7 +283,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 		dataModel.put("width", getPropertyString("size") == null || getPropertyString("size").isEmpty() ? "resolve" : (getPropertyString("size").replaceAll("[^0-9]+]", "") + "%"));
         dataModel.put("keyField", PARAMETER_ID);
         
-        Map<String, String> fieldTypes = new HashMap<String, String>();
+        Map<String, String> fieldTypes = new HashMap<>();
         getFieldTypes(rootForm, fieldTypes);
         dataModel.put("fieldTypes", fieldTypes);
 
@@ -405,7 +406,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 			String id = element.getPropertyString(FormUtil.PROPERTY_ID);
 			
 			if(id != null && !id.isEmpty()) {
-				if("true".equalsIgnoreCase(element.getPropertyString(FormUtil.PROPERTY_READONLY_LABEL)))
+				if("true".equalsIgnoreCase(element.getPropertyString(FormUtil.PROPERTY_READONLY)) && "true".equalsIgnoreCase(element.getPropertyString(FormUtil.PROPERTY_READONLY_LABEL)))
 					types.put(id, "LABEL");
 				else if(element instanceof CheckBox)
 					types.put(id, "CHECK_BOXES");
@@ -417,6 +418,8 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 					types.put(id, "SELECT_BOXES");
 				else
 					types.put(id, "OTHERS");
+
+//				LogUtil.info(getClassName(), "form ["+FormUtil.findRootForm(element).getPropertyString("id")+"] element ["+id+"] type ["+types.get(id)+"]");
 			}
 			
 			for(Element child : element.getChildren()) {

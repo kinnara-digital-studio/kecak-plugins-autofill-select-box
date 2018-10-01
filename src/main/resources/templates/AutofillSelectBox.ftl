@@ -183,8 +183,9 @@
                                     <#list fieldsMapping?keys! as field>
                                         if(data[i].${fieldsMapping[field]!} || data[i].${fieldsMapping[field]!} == '') {
                                             <#assign fieldType = fieldTypes[field!]!>
+                                            <!-- fieldType ${fieldType} -->
                                             <#if fieldType == 'LABEL'>
-                                                $("div.subform-cell-value span[id='" + prefix + "${field!}']").each(function() {
+                                                $("div.subform-cell-value span[name='" + prefix + "${field!}']").each(function() {
                                                     $(this).html(data[i].${fieldsMapping[field]!});
                                                     $(this).trigger("change");
                                                 });
