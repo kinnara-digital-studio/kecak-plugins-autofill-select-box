@@ -47,25 +47,32 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 	private final static String PARAMETER_APP_ID = "appId";
 	private final static String PARAMETER_APP_VERSION = "appVersion";
 
+	private final static String BODY_FORM_ID = "FORM_ID";
+	private final static String BODY_FIELD_ID = "FIELD_ID";
+
+	private final static String PROPERTY_AUTOFILL_LOAD_BINDER = "autofillLoadBinder";
+
 	private final static long PAGE_SIZE = 10;
 
 	public void webService(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
+		final ApplicationContext appContext = AppUtil.getApplicationContext();
+		final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
+
+		final String appId = request.getParameter("appId");
+		final String appVersion = request.getParameter("appVersion");
+		final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
+
 		if("GET".equals(request.getMethod())) {
 			// method for paging
-			final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) AppUtil.getApplicationContext().getBean("appDefinitionDao");
 
-			final String appId = request.getParameter("appId");
-			final String appVersion = request.getParameter("appVersion");
 			final String formDefId = request.getParameter("formDefId");
 			final String[] fieldIds = request.getParameterValues("fieldId");
 			final String search = request.getParameter("search");
 			final Pattern searchPattern = Pattern.compile(search == null ? "" : search, Pattern.CASE_INSENSITIVE);
 			final long page = Long.parseLong(request.getParameter("page"));
 			final String grouping = request.getParameter("grouping");
-
-			final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
 
 			final FormData formData = new FormData();
 			final Form form = generateForm(appDefinition, formDefId);
@@ -144,26 +151,27 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
 			}
 		} else if("POST".equals(request.getMethod())) {
-			ApplicationContext appContext = AppUtil.getApplicationContext();
 			
 			try {
 				JSONObject body = constructRequestBody(request);
-				
-				JSONObject autofillLoadBinder = body.getJSONObject("autofillLoadBinder");
-				JSONObject autofillForm = body.getJSONObject("autofillForm");
+
+				String formDefId = body.getString(BODY_FORM_ID);
+				String fieldId = body.getString(BODY_FIELD_ID);
+
 				JSONObject autofillRequestParameter = body.getJSONObject("autofillRequestParameter");
 
 				// build form
-				FormService formService = (FormService) appContext.getBean("formService");
-				Form form = (Form)formService.createElementFromJson(autofillForm.toString());
+				Form form = generateForm(appDefinition, formDefId);
+				FormData formData = new FormData();
+				Element elementSelectBox = FormUtil.findElement(fieldId, form, formData, true);
+				Map<String, Object> autofillLoadBinder = (Map<String, Object>) elementSelectBox.getProperty(PROPERTY_AUTOFILL_LOAD_BINDER);
 
 				PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
-				FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(autofillLoadBinder.getString(FormUtil.PROPERTY_CLASS_NAME));
+				FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(String.valueOf(autofillLoadBinder.get(FormUtil.PROPERTY_CLASS_NAME)));
 								
 				if(form != null && loadBinder != null) {
-					LogUtil.info(getClassName(), "form ["+form.getPropertyString("id")+"]");
 					try {
-						Map<String, Object> properties = FormUtil.parsePropertyFromJsonObject(autofillLoadBinder);
+						Map<String, Object> properties = (Map<String, Object>) autofillLoadBinder.get(FormUtil.PROPERTY_PROPERTIES);
 						loadBinder.setProperties(properties);
 						form.setLoadBinder((FormLoadBinder) loadBinder);
 					} catch (Exception e) {
@@ -171,8 +179,6 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 					}
 
 					String primaryKey = request.getParameter(PARAMETER_ID);
-					String appId = request.getParameter(PARAMETER_APP_ID);
-					String appVersion = request.getParameter(PARAMETER_APP_VERSION);
 
 					autofillRequestParameter.put(PARAMETER_APP_ID, appId);
 					autofillRequestParameter.put(PARAMETER_APP_VERSION, appVersion);
@@ -186,7 +192,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 				}
 				
 			} catch (JSONException e) {
-				e.printStackTrace();
+				LogUtil.error(getClassName(), e, e.getMessage());
 				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			}
 		} else {
@@ -212,7 +218,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
             encryption += "options : [{value : 'true', label : '' }]}";
         }
         
-        String selectForm = null;
+        String selectForm;
         AppDefinition appDef = AppUtil.getCurrentAppDefinition();
         if (appDef != null) {
             String formJsonUrl = "[CONTEXT_PATH]/web/json/console/app/" + appDef.getId() + "/" + appDef.getVersion() + "/forms/options";
@@ -220,7 +226,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
         } else {
             selectForm = "{name:'selectForm',label:'Form',type:'textfield',required : 'True'}";
         }
-        return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillSelectBox.json", new String[]{selectForm, encryption}, true, "message/form/SelectBox");
+        return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillSelectBox.json", new String[]{PROPERTY_AUTOFILL_LOAD_BINDER}, true, "message/form/SelectBox");
 	}
 
 	@Override
@@ -289,12 +295,14 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 
 		try {
 			JSONObject requestBody = new JSONObject();
-			if (rootForm != null)
-				requestBody.put("autofillForm", new JSONObject(FormUtil.generateElementJson(rootForm)));
+			if (rootForm != null) {
+				requestBody.put(BODY_FORM_ID, rootForm.getPropertyString(FormUtil.PROPERTY_ID));
+			}
 
-			Map<String, Object> autofillLoadBinder = (Map<String, Object>) getProperty("autofillLoadBinder");
-			if (autofillLoadBinder != null)
-				requestBody.put("autofillLoadBinder", FormUtil.generatePropertyJsonObject(autofillLoadBinder));
+			Map<String, Object> autofillLoadBinder = (Map<String, Object>) getProperty(PROPERTY_AUTOFILL_LOAD_BINDER);
+			if (autofillLoadBinder != null) {
+				requestBody.put(BODY_FIELD_ID, getPropertyString(FormUtil.PROPERTY_ID));
+			}
 
 			dataModel.put("requestBody", requestBody);
 		} catch (Exception e) {

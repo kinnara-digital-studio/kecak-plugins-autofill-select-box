@@ -190,7 +190,7 @@
 	title : 'Autofill',
 	properties : [
 		{
-			name : 'autofillLoadBinder',
+			name : '%s',
 			label : 'Autofill Load Binder',
 			type : 'elementselect',
 			options_ajax : '[CONTEXT_PATH]/web/property/json/getElements?classname=org.joget.apps.form.model.FormLoadElementBinder',
