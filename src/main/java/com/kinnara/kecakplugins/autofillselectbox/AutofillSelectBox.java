@@ -71,7 +71,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 			final String[] fieldIds = request.getParameterValues("fieldId");
 			final String search = request.getParameter("search");
 			final Pattern searchPattern = Pattern.compile(search == null ? "" : search, Pattern.CASE_INSENSITIVE);
-			final long page = Long.parseLong(request.getParameter("page"));
+			final long page = request.getParameter("page") == null ? PAGE_SIZE : Long.parseLong(request.getParameter("page"));
 			final String grouping = request.getParameter("grouping");
 
 			final FormData formData = new FormData();

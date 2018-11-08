@@ -117,9 +117,10 @@
                         var primaryKey = $(this).val();
                         var url = "${request.contextPath}/web/json/plugin/${className}/service?${keyField}=" + primaryKey + "&appId=${appId}&appVersion=${appVersion}";
 
-                        $('img#${elementId!}_loading').show();
-
                         var jsonData = ${requestBody!};
+                        if(!(jsonData['FORM_ID'] && jsonData['FIELD_ID']))
+                            return;
+
                         jsonData.autofillRequestParameter = new Object();
 
                         <#-- BETA -->
@@ -127,6 +128,7 @@
                         var prefix = '${element.properties.customParameterName!}'.replace(/${element.properties.id}$/, '');
                         var patternPrefix = new RegExp('^' + prefix);
 
+                        $('img#${elementId!}_loading').show();
                         $('input[name^="' + prefix + '"]').each(function() {
                             var name = $(this).attr('name');
                             if(name) {
