@@ -115,9 +115,13 @@
                 function trigger_${elementId}() {
                     <#if includeMetaData == false || requestBody?? >
                         var primaryKey = $(this).val();
-                        var url = "${request.contextPath}/web/json/plugin/${className}/service?${keyField}=" + primaryKey + "&appId=${appId}&appVersion=${appVersion}";
+                        var url = "${request.contextPath}/web/json/plugin/${className}/service?appId=${appId}&appVersion=${appVersion}";
 
-                        var jsonData = ${requestBody!};
+                        var jsonData = {
+                            ${keyField} : primaryKey,
+                            ...${requestBody!}
+                        };
+
                         if(!(jsonData['FORM_ID'] && jsonData['FIELD_ID']))
                             return;
 

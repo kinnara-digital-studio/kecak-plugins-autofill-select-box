@@ -157,6 +157,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 
 				String formDefId = body.getString(BODY_FORM_ID);
 				String fieldId = body.getString(BODY_FIELD_ID);
+				String primaryKey = body.getString(PARAMETER_ID);
 
 				JSONObject autofillRequestParameter = body.getJSONObject("autofillRequestParameter");
 
@@ -177,8 +178,6 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 					} catch (Exception e) {
 						LogUtil.error(getClassName(), e, "Error configuring load binder");
 					}
-
-					String primaryKey = request.getParameter(PARAMETER_ID);
 
 					autofillRequestParameter.put(PARAMETER_APP_ID, appId);
 					autofillRequestParameter.put(PARAMETER_APP_VERSION, appVersion);
