@@ -208,52 +208,58 @@
                 label : ''
               }
             ]
-        },
-		{
-			name : 'lazyMapping',
-			label : 'Lazy Mapping',
-			description : 'Auto map respective result fields',
-			type : 'checkbox',
-			value : 'true',
-			options : [
-				{
-					value : 'true',
-					label : ''
-				}
-			]
-		},
-		{
-			name : 'autofillFields',
-			label : 'Fields Mapping',
-            description : 'Leave Result Data Field empty if you want skip the mapping',
-			type : 'grid',
-            control_field : 'lazyMapping',
-            control_value : '',
-			columns : [
-				{
-					key : 'formField',
-					label : 'Form Field to Fill',
-					required : 'true'
-				},
-				{
-					key : 'resultField',
-					label : 'Result Data Field'
-				}
-			]
-		},
-        {
-          name : 'targetFieldAsReadonly',
-          label : 'Target Field As Readonly',
-          type : 'checkbox',
-          value : '',
-          control_field : 'lazyMapping',
-          control_value : '',
-          options : [
-            {
-              value : 'true',
-              label : ''
-            }
-          ]
         }
 	]
-}]
+},
+  {
+    title : 'Mapping',
+    properties : [
+      {
+        name : 'lazyMapping',
+        label : 'Lazy Mapping',
+        description : 'Auto map respective result fields',
+        type : 'checkbox',
+        value : 'true',
+        options : [
+          {
+            value : 'true',
+            label : ''
+          }
+        ]
+      },
+      {
+        name : 'autofillFields',
+        label : 'Fields Mapping',
+        description : 'Leave Result Data Field empty if you want skip the mapping',
+        type : 'grid',
+        control_field : 'lazyMapping',
+        control_value : '',
+        columns : [
+          {
+            key : 'formField',
+            label : 'Form Field to Fill',
+            required : 'true'
+          },
+          {
+            key : 'resultField',
+            label : 'Result Data Field'
+          }
+        ]
+      },
+      {
+        name : 'targetFieldAsReadonly',
+        label : 'Target Field As Readonly',
+        type : 'checkbox',
+        value : '',
+        control_field : 'lazyMapping',
+        control_value : '',
+        options : [
+          {
+            value : 'true',
+            label : ''
+          }
+        ]
+      }
+    ]
+  }
+]

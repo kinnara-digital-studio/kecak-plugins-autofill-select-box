@@ -21,6 +21,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.context.ApplicationContext;
 
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -106,7 +107,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 						} else {
 							try {
 								JSONObject jsonResult = new JSONObject();
-								jsonResult.put("id", formRow.getProperty(FormUtil.PROPERTY_VALUE));
+								jsonResult.put("id", SecurityUtil.encrypt(formRow.getProperty(FormUtil.PROPERTY_VALUE)));
 								jsonResult.put("text", formRow.getProperty(FormUtil.PROPERTY_LABEL));
 								jsonResults.put(jsonResult);
 								pageSize--;
@@ -157,7 +158,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 
 				String formDefId = body.getString(BODY_FORM_ID);
 				String fieldId = body.getString(BODY_FIELD_ID);
-				String primaryKey = body.getString(PARAMETER_ID);
+				String primaryKey = SecurityUtil.decrypt(body.getString(PARAMETER_ID));
 
 				JSONObject autofillRequestParameter = body.getJSONObject("autofillRequestParameter");
 
@@ -249,6 +250,53 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
     }
 
 	@Override
+	public FormRowSet formatData(FormData formData) {
+		FormRowSet rowSet = null;
+
+		// get value
+		String id = getPropertyString(FormUtil.PROPERTY_ID);
+		if (id != null) {
+			String[] values = Arrays.stream(FormUtil.getElementPropertyValues(this, formData))
+					// descrypt before storing to database
+					.map(SecurityUtil::decrypt)
+					.toArray(String[]::new);
+			if (values != null && values.length > 0) {
+				// check for empty submission via parameter
+				String[] paramValues = FormUtil.getRequestParameterValues(this, formData);
+				if ((paramValues == null || paramValues.length == 0) && FormUtil.isFormSubmitted(this, formData)) {
+					values = new String[]{""};
+				}
+
+				// formulate values
+				String delimitedValue = FormUtil.generateElementPropertyValues(values);
+
+				// set value into Properties and FormRowSet object
+				FormRow result = new FormRow();
+				result.setProperty(id, delimitedValue);
+				rowSet = new FormRowSet();
+				rowSet.add(result);
+			}
+
+			// remove duplicate based on label (because list is sorted by label by default)
+			if("true".equals(getProperty("removeDuplicates")) && rowSet != null) {
+				FormRowSet newResults = new FormRowSet();
+				String currentValue = null;
+				for(FormRow row : rowSet) {
+					String label = row.getProperty(FormUtil.PROPERTY_LABEL);
+					if(currentValue == null || !currentValue.equals(label)) {
+						currentValue = label;
+						newResults.add(row);
+					}
+				}
+
+				rowSet = newResults;
+			}
+		}
+
+		return rowSet;
+	}
+
+	@Override
 	public String renderTemplate(FormData formData, Map dataModel) {
 		dataModel.replace("element", this);
 
@@ -258,13 +306,15 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
         dynamicOptions(formData);
 
         // set value
-        String[] valueArray = FormUtil.getElementPropertyValues(this, formData);
-        List<String> values = Arrays.asList(valueArray);
+        List<String> values = Arrays.stream(FormUtil.getElementPropertyValues(this, formData))
+				.map(SecurityUtil::encrypt)
+				.collect(Collectors.toList());
 		dataModel.put("values", values);
 
 		final List<Map<String, String>> optionMap = getOptionMap(formData)
 				.stream()
 				.map(m -> (Map<String,String>)m)
+				.peek(m -> m.put(FormUtil.PROPERTY_VALUE, SecurityUtil.encrypt(m.get(FormUtil.PROPERTY_VALUE))))
 				.collect(Collectors.toList());
 		dataModel.put("options", optionMap);
 
@@ -375,18 +425,6 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 	@Override
 	public String getFormBuilderTemplate() {
 		return "<label class='label'>" + getName() + "</label><select><option>Option</option></select>";
-	}
-
-	/**
-	 * Condition callback when iterating elements
-	 */
-	interface ConditionCallback {
-		/**
-		 *
-		 * @param element
-		 * @return true if element field should be mapped
-		 */
-		boolean isFulfillCondition(Element element);
 	}
 
 	/**
