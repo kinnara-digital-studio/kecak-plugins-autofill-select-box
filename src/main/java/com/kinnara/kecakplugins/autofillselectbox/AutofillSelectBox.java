@@ -60,13 +60,12 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 		final ApplicationContext appContext = AppUtil.getApplicationContext();
 		final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
 
-		final String appId = request.getParameter("appId");
-		final String appVersion = request.getParameter("appVersion");
-		final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
-
 		if("GET".equals(request.getMethod())) {
-			// method for paging
+			final String appId = request.getParameter("appId");
+			final String appVersion = request.getParameter("appVersion");
+			final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
 
+			// method for paging
 			final String formDefId = request.getParameter("formDefId");
 			final String[] fieldIds = request.getParameterValues("fieldId");
 			final String search = request.getParameter("search");
@@ -80,9 +79,10 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 			final JSONArray jsonResults = new JSONArray();
 			for (String fieldId : fieldIds) {
 				Element element = FormUtil.findElement(fieldId, form, formData);
-
 				if (element == null)
 					continue;
+
+				final boolean encryption = "true".equalsIgnoreCase(element.getPropertyString("encryption"));
 
 				FormRowSet optionsRowSet;
 				if (element.getOptionsBinder() == null) {
@@ -106,7 +106,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 						} else {
 							try {
 								JSONObject jsonResult = new JSONObject();
-								jsonResult.put("id", SecurityUtil.encrypt(formRow.getProperty(FormUtil.PROPERTY_VALUE)));
+								jsonResult.put("id", encrypt(formRow.getProperty(FormUtil.PROPERTY_VALUE), encryption));
 								jsonResult.put("text", formRow.getProperty(FormUtil.PROPERTY_LABEL));
 								jsonResults.put(jsonResult);
 								pageSize--;
@@ -151,13 +151,15 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
 			}
 		} else if("POST".equals(request.getMethod())) {
-			
+
 			try {
 				JSONObject body = constructRequestBody(request);
 
-				String formDefId = body.getString(BODY_FORM_ID);
-				String fieldId = body.getString(BODY_FIELD_ID);
-				String primaryKey = SecurityUtil.decrypt(body.getString(PARAMETER_ID));
+				final String appId = body.getString(PARAMETER_APP_ID);
+				final String appVersion = body.getString(PARAMETER_APP_VERSION);
+				final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
+				final String formDefId = body.getString(BODY_FORM_ID);
+				final String fieldId = body.getString(BODY_FIELD_ID);
 
 				JSONObject autofillRequestParameter = body.getJSONObject("autofillRequestParameter");
 
@@ -169,6 +171,9 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 
 				PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
 				FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(String.valueOf(autofillLoadBinder.get(FormUtil.PROPERTY_CLASS_NAME)));
+
+				boolean encryption = "true".equalsIgnoreCase(elementSelectBox.getPropertyString("encryption"));
+				String primaryKey = decrypt(body.getString(PARAMETER_ID), encryption);
 								
 				if(form != null && loadBinder != null) {
 					try {
@@ -258,8 +263,9 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 		} else {
 			formData.getRequestParams()
 					.entrySet()
-					.forEach(e -> e.setValue(Arrays.stream(e.getValue()).map(SecurityUtil::decrypt).toArray(String[]::new)));
+					.forEach(e -> e.setValue(Arrays.stream(e.getValue()).map(this::decrypt).toArray(String[]::new)));
 		}
+
 		return formData;
 	}
 
@@ -272,13 +278,13 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 		if (id != null) {
 			String[] values = Arrays.stream(FormUtil.getElementPropertyValues(this, formData))
 					// descrypt before storing to database
-					.map(SecurityUtil::decrypt)
+					.map(this::decrypt)
 					.toArray(String[]::new);
 			if (values.length > 0) {
 				// check for empty submission via parameter
 				String[] paramValues = FormUtil.getRequestParameterValues(this, formData);
 				if ((paramValues == null || paramValues.length == 0) && FormUtil.isFormSubmitted(this, formData)) {
-					values = new String[]{SecurityUtil.encrypt("")};
+					values = new String[]{encrypt("")};
 				}
 
 				// formulate values
@@ -321,14 +327,14 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 
         // set value
         List<String> values = Arrays.stream(FormUtil.getElementPropertyValues(this, formData))
-				.map(SecurityUtil::encrypt)
+				.map(this::encrypt)
 				.collect(Collectors.toList());
 		dataModel.put("values", values);
 
 		final List<Map<String, String>> optionMap = getOptionMap(formData)
 				.stream()
 				.map(m -> (Map<String,String>)m)
-				.peek(m -> m.put(FormUtil.PROPERTY_VALUE, SecurityUtil.encrypt(m.get(FormUtil.PROPERTY_VALUE))))
+				.peek(m -> m.put(FormUtil.PROPERTY_VALUE, encrypt(m.get(FormUtil.PROPERTY_VALUE))))
 				.collect(Collectors.toList());
 		dataModel.put("options", optionMap);
 
@@ -571,5 +577,27 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 			}
 		}
 		return null;
+	}
+
+	protected String encrypt(String rawContent) {
+		return encrypt(rawContent, "true".equalsIgnoreCase(getPropertyString("encryption")));
+	}
+
+	protected String encrypt(String rawContent, boolean encryption) {
+		if(encryption) {
+			return SecurityUtil.encrypt(rawContent);
+		}
+		return rawContent;
+	}
+
+	protected String decrypt(String protectedContent) {
+		return decrypt(protectedContent, "true".equalsIgnoreCase(getPropertyString("encryption")));
+	}
+
+	protected String decrypt(String protectedContent, boolean encryption) {
+		if(encryption) {
+			return SecurityUtil.decrypt(protectedContent);
+		}
+		return protectedContent;
 	}
 }

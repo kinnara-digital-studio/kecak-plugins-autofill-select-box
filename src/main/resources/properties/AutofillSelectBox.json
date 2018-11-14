@@ -120,6 +120,18 @@
             label : ''
         }]
     },
+      {
+        name : 'encryption',
+        label : 'UI Value Encryption',
+        type : 'checkbox',
+        value : 'true',
+        options : [
+          {
+            value : 'true',
+            label : ''
+          }
+        ]
+      },
     {
         label : '@@form.selectbox.workflow@@',
         type : 'header'
