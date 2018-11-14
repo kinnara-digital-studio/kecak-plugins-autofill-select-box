@@ -21,7 +21,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.context.ApplicationContext;
 
-import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -250,6 +249,21 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
     }
 
 	@Override
+	public FormData formatDataForValidation(FormData formData) {
+		String[] paramValues = FormUtil.getRequestParameterValues(this, formData);
+
+		if ((paramValues == null || paramValues.length == 0) && FormUtil.isFormSubmitted(this, formData)) {
+			String paramName = FormUtil.getElementParameterName(this);
+			formData.addRequestParameterValues(paramName, new String[]{""});
+		} else {
+			formData.getRequestParams()
+					.entrySet()
+					.forEach(e -> e.setValue(Arrays.stream(e.getValue()).map(SecurityUtil::decrypt).toArray(String[]::new)));
+		}
+		return formData;
+	}
+
+	@Override
 	public FormRowSet formatData(FormData formData) {
 		FormRowSet rowSet = null;
 
@@ -260,11 +274,11 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 					// descrypt before storing to database
 					.map(SecurityUtil::decrypt)
 					.toArray(String[]::new);
-			if (values != null && values.length > 0) {
+			if (values.length > 0) {
 				// check for empty submission via parameter
 				String[] paramValues = FormUtil.getRequestParameterValues(this, formData);
 				if ((paramValues == null || paramValues.length == 0) && FormUtil.isFormSubmitted(this, formData)) {
-					values = new String[]{""};
+					values = new String[]{SecurityUtil.encrypt("")};
 				}
 
 				// formulate values

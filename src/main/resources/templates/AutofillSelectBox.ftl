@@ -114,7 +114,7 @@
 
                 function trigger_${elementId}() {
                     <#if includeMetaData == false || requestBody?? >
-                        var primaryKey = $(this).val();
+                            var primaryKey = $(this).val();
                         var url = "${request.contextPath}/web/json/plugin/${className}/service?appId=${appId}&appVersion=${appVersion}";
 
                         var jsonData = {
