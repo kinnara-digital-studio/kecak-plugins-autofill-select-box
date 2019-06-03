@@ -601,9 +601,6 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 	protected String encrypt(String rawContent, boolean encryption) {
 		if(encryption) {
 			String encrypted = SecurityUtil.encrypt(rawContent);
-
-			LogUtil.info(getClassName(), "Check encryption ["+SecurityUtil.encrypt(rawContent)+"] ["+SecurityUtil.encrypt(rawContent)+"]");
-
 			if(verifyEncryption(rawContent, encrypted)) {
 				return encrypted;
 			} else {
