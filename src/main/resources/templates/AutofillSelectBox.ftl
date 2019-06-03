@@ -24,7 +24,7 @@
         </div>
         <div style="clear:both;"></div>
     <#else>
-        <select class="js-select2" id="${elementId}" name="${elementParamName!}" <#if element.properties.multiple! == 'true'>multiple</#if> <#if error??>class="form-error-cell"</#if>>
+        <select class="js-select2" id="${elementId}" name="${elementParamName!}" <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
             <#if element.properties.lazyLoading! != 'true' >
                 <#list options! as option>
                     <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>

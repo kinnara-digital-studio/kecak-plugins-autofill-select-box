@@ -21,6 +21,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.context.ApplicationContext;
 
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -326,19 +327,33 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
         dynamicOptions(formData);
 
         // set value
-        List<String> values = Arrays.stream(FormUtil.getElementPropertyValues(this, formData))
-				.map(this::encrypt)
+		@Nonnull
+		final List<String> databasePlainValues = Arrays.stream(FormUtil.getElementPropertyValues(this, formData))
 				.collect(Collectors.toList());
-		dataModel.put("values", values);
 
-		final List<Map<String, String>> optionMap = getOptionMap(formData)
+		@Nonnull
+		final List<String> databaseEncryptedValues = new ArrayList<>();
+
+		@Nonnull
+		final List<Map<String, String>> optionsMap = getOptionMap(formData)
 				.stream()
 				.map(m -> (Map<String,String>)m)
-				.peek(m -> m.put(FormUtil.PROPERTY_VALUE, encrypt(m.get(FormUtil.PROPERTY_VALUE))))
-				.collect(Collectors.toList());
-		dataModel.put("options", optionMap);
+				.peek(m -> {
+					final String value = m.get(FormUtil.PROPERTY_VALUE);
+					final String encrypted = encrypt(value);
 
-		Collection<Map<String, String>> valuesMap = values.stream()
+					m.put(FormUtil.PROPERTY_VALUE, encrypted);
+
+					if(databasePlainValues.stream().anyMatch(s -> s.equals(value))) {
+						databaseEncryptedValues.add(encrypted);
+					}
+				})
+				.collect(Collectors.toList());
+
+		dataModel.put("values", databaseEncryptedValues);
+		dataModel.put("options", optionsMap);
+
+		Collection<Map<String, String>> valuesMap = databaseEncryptedValues.stream()
 				.filter(s -> !s.isEmpty())
 				.map(s -> {
 					Map<String, String> map = new HashMap<>();
@@ -347,8 +362,8 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 					final Map<String, String> lookingFor = new HashMap<>();
 					lookingFor.put("value", s);
 
-					int index = Collections.binarySearch(optionMap, lookingFor, Comparator.comparing(m -> m.get("value")));
-					map.put("label", index >= 0 ? optionMap.get(index).get("label") : s);
+					int index = Collections.binarySearch(optionsMap, lookingFor, Comparator.comparing(m -> m.get("value")));
+					map.put("label", index >= 0 ? optionsMap.get(index).get("label") : s);
 					return map;
 				})
 				.collect(Collectors.toList());
@@ -585,9 +600,29 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 
 	protected String encrypt(String rawContent, boolean encryption) {
 		if(encryption) {
-			return SecurityUtil.encrypt(rawContent);
+			String encrypted = SecurityUtil.encrypt(rawContent);
+
+			LogUtil.info(getClassName(), "Check encryption ["+SecurityUtil.encrypt(rawContent)+"] ["+SecurityUtil.encrypt(rawContent)+"]");
+
+			if(verifyEncryption(rawContent, encrypted)) {
+				return encrypted;
+			} else {
+				LogUtil.warn(getClassName(), "Failed to verify encrypted value, use raw content");
+				return rawContent;
+			}
 		}
 		return rawContent;
+	}
+
+	/**
+	 * For testing purpose
+	 * @param rawContent
+	 * @param encryptedValue
+	 * @return
+	 */
+	private boolean verifyEncryption(String rawContent, String encryptedValue) {
+		// try to decrypt
+		return (rawContent.equals(decrypt(encryptedValue)));
 	}
 
 	protected String decrypt(String protectedContent) {
