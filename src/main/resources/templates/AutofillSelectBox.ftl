@@ -106,6 +106,7 @@
 
                 <#if element.properties.targetFieldAsReadonly! == 'true'>
                     <#list fieldsMapping?keys! as field>
+                        let selector = FileUtil.findField(field);
                         $("[name='" + prefix + "${field!}']").each(function() {
                             $(this).attr('readonly', 'readonly');
                         });
@@ -157,11 +158,11 @@
                                 <#list fieldsMapping?keys! as field>
                                     <#assign fieldType = fieldTypes[field!]!>
                                     <#if fieldType! == 'RADIOS' >
-                                        $("input[name='" + prefix + "${field!}']).each(function() {
+                                        $("input[name='" + prefix + "${field!}']).each(function(i) {
                                             $(this).prop('checked', false);
                                         });
                                     <#elseif fieldType! == 'CHECK_BOXES'>
-                                        $("input[name='" + prefix + "${field!}']").each(function() {
+                                        $("input[name='" + prefix + "${field!}']").each(function(i) {
                                             var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
                                             $(this).prop('checked', false);
                                         });
