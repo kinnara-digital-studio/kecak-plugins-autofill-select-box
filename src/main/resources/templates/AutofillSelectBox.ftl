@@ -158,12 +158,11 @@
                                 <#list fieldsMapping?keys! as field>
                                     <#assign fieldType = fieldTypes[field!]!>
                                     <#if fieldType! == 'RADIOS' >
-                                        $("input[name='" + prefix + "${field!}']).each(function(i) {
+                                        $("input[name='" + prefix + "${field!}']).each(function() {
                                             $(this).prop('checked', false);
                                         });
                                     <#elseif fieldType! == 'CHECK_BOXES'>
-                                        $("input[name='" + prefix + "${field!}']").each(function(i) {
-                                            var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
+                                        $("input[name='" + prefix + "${field!}']").each(function() {
                                             $(this).prop('checked', false);
                                         });
                                     <#elseif fieldType! == 'GRIDS'>
@@ -187,7 +186,7 @@
                                 </#list>
                             </#if>
 
-                            for(var i in data) {
+                            for(let i in data) {
                                 if(data[i]) {
                                     <#list fieldsMapping?keys! as field>
                                         if(data[i].${fieldsMapping[field]!} || data[i].${fieldsMapping[field]!} == '') {

@@ -62,6 +62,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 		final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
 
 		if("GET".equals(request.getMethod())) {
+		    // Get Options Binder Data
 			final String appId = request.getParameter("appId");
 			final String appVersion = request.getParameter("appVersion");
 			final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
