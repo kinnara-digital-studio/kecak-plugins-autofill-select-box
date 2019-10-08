@@ -1,6 +1,8 @@
 <div class="form-cell" ${elementMetaData!}>
 	<link rel="stylesheet" href="${request.contextPath}/plugin/${className}/bower_components/select2/dist/css/select2.min.css" />
+
     <script type="text/javascript" src="${request.contextPath}/plugin/${className}/bower_components/select2/dist/js/select2.min.js"></script>
+    <#-- <script type="text/javascript" src="${request.contextPath}/plugin/${className}/js/jquery.autofillselectbox.js"></script> -->
     <script type="text/javascript" src="${request.contextPath}/js/json/formUtil.js"></script>
 	
 	<#assign elementId = elementParamName + element.properties.elementUniqueKey>
@@ -77,7 +79,7 @@
 
                     <#if element.properties.lazyLoading! == 'true' >
                         ,ajax: {
-                            url: '${request.contextPath}/web/json/plugin/${className}/service',
+                            url: '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service',
                             delay : 500,
                             dataType: 'json',
                             data : function(params) {
@@ -99,23 +101,33 @@
 
                 var prefix = "${elementId}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
 
-                $('#${elementId}').change(trigger_${elementId});
+                const TIMEOUT = 100;
+                $('#${elementId}').change(() => setTimeout(trigger_${elementId}, TIMEOUT));
+
                 <#if element.properties.triggerOnPageLoad! == 'true'>
                     $('#${elementId}').change();
                 </#if>
 
                 <#if element.properties.targetFieldAsReadonly! == 'true'>
                     <#list fieldsMapping?keys! as field>
-                        let selector = FileUtil.findField(field);
-                        $("[name='" + prefix + "${field!}']").each(function() {
-                            $(this).attr('readonly', 'readonly');
-                        });
+                        {
+                            let $selector = FormUtil.getField('${field!}');
+                            <#--
+                            $("[name='" + prefix + "${field!}']").each(function() {
+                                $(this).attr('readonly', 'readonly');
+                            });
+                            -->
+
+                            $selector.each(function() {
+                                $(this).attr('readonly', 'readonly');
+                            });
+                        }
                     </#list>
                 </#if>
 
                 function trigger_${elementId}() {
                     <#if includeMetaData == false || requestBody?? >
-                            var primaryKey = $(this).val();
+                        var primaryKey = $('#${elementId}').val();
                         var url = "${request.contextPath}/web/json/plugin/${className}/service";
 
                         var jsonData = {
@@ -156,55 +168,69 @@
                             <#-- clean up field if no lazy mapping -->
                             <#if element.properties.lazyMapping! != 'true' >
                                 <#list fieldsMapping?keys! as field>
-                                    <#assign fieldType = fieldTypes[field!]!>
-                                    <#if fieldType! == 'RADIOS' >
-                                        $("input[name='" + prefix + "${field!}']).each(function() {
-                                            $(this).prop('checked', false);
-                                        });
-                                    <#elseif fieldType! == 'CHECK_BOXES'>
-                                        $("input[name='" + prefix + "${field!}']").each(function() {
-                                            $(this).prop('checked', false);
-                                        });
-                                    <#elseif fieldType! == 'GRIDS'>
-                                        $("div.grid[name='" + prefix + "${field!}']").each(function() {
-                                            <#-- remove previous grid row -->
-                                            $(this).find('tr.grid-row').each(function() {
-                                                $(this).remove();
+                                    {
+                                        let $selector = FormUtil.getField('${field!}');
+
+                                        <#assign fieldType = fieldTypes[field!]!>
+                                        <#if fieldType! == 'RADIOS' >
+                                            $selector.each(function() {
+                                                $(this).prop('checked', false);
                                             });
-                                        });
-                                    <#elseif fieldType! == 'SELECT_BOXES'>
-                                        $("select[name='" + prefix + "${field!}']").each(function() {
-                                            $(this).val([]);
-                                            $(this).trigger("chosen:updated"); <#-- if chosen is used -->
-                                            $(this).trigger("change");  <#-- if select2 is used -->
-                                        });
-                                    <#else>
-                                        $("[name='" + prefix + "${field!}']").each(function() {
-                                            $(this).val('');
-                                        });
-                                    </#if>
+                                        <#elseif fieldType! == 'CHECK_BOXES'>
+                                            $selector.each(function() {
+                                                $(this).prop('checked', false);
+                                            });
+                                        <#elseif fieldType! == 'GRIDS'>
+                                            $("div.grid[name='" + prefix + "${field!}']").each(function() {
+                                                <#-- remove previous grid row -->
+                                                $(this).find('tr.grid-row').each(function() {
+                                                    $(this).remove();
+                                                });
+                                            });
+                                        <#elseif fieldType! == 'SELECT_BOXES'>
+                                            $("select[name='" + prefix + "${field!}']").each(function() {
+                                                $(this).val([]);
+                                                $(this).trigger("chosen:updated"); <#-- if chosen is used -->
+                                                $(this).trigger("change");  <#-- if select2 is used -->
+                                            });
+                                        <#else>
+                                            $selector.each(function() {
+                                                $(this).val('');
+                                            });
+                                        </#if>
+                                    }
                                 </#list>
                             </#if>
 
-                            for(let i in data) {
-                                if(data[i]) {
-                                    <#list fieldsMapping?keys! as field>
-                                        if(data[i].${fieldsMapping[field]!} || data[i].${fieldsMapping[field]!} == '') {
+                            if(data.length == 0) {
+                                return;
+                            }
+
+                            let i = 0;
+                            let item = data[i];
+
+                            <#list fieldsMapping?keys! as field>
+                                if(item.${fieldsMapping[field]!}) {
+                                    let $selector = FormUtil.getField('${field!}');
+
+                                    if($selector.is(':checkbox, :radio')) {
+                                        $selector.each(function() {
+                                            var multivalue = item.${fieldsMapping[field]!}.split(/;/);
+                                            $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
+                                        });
+                                    } else if($selector.is('select')) {
+                                        $("select[name='" + prefix + "${field!}']").each(function() {
+                                            $(this).val(item.${fieldsMapping[field]!}.split(/;/)).trigger("change");
+                                            $(this).trigger("chosen:updated");
+                                        });
+                                    } else {
+                                        if(item.${fieldsMapping[field]!} || item.${fieldsMapping[field]!} == '') {
                                             <#assign fieldType = fieldTypes[field!]!>
                                             <!-- fieldType ${fieldType} -->
                                             <#if fieldType == 'LABEL'>
                                                 $("div.subform-cell-value span[name='" + prefix + "${field!}']").each(function() {
-                                                    $(this).html(data[i].${fieldsMapping[field]!});
+                                                    $(this).html(item.${fieldsMapping[field]!});
                                                     $(this).trigger("change");
-                                                });
-                                            <#elseif fieldType! == 'RADIOS' >
-                                                $("input[name='" + prefix + "${field!}']").each(function() {
-                                                    $(this).prop('checked', $(this).val() == data[i].${fieldsMapping[field]!});
-                                                });
-                                            <#elseif fieldType! == 'CHECK_BOXES'>
-                                                $("input[name='" + prefix + "${field!}']").each(function() {
-                                                    var multivalue = data[i].${fieldsMapping[field]!}.split(/;/);
-                                                    $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
                                                 });
                                             <#elseif fieldType! == 'GRIDS'>
                                                 $("div.grid[name='" + prefix + "${field!}']").each(function() {
@@ -216,28 +242,23 @@
                                                     try {
                                                         var functionAdd = window[$(this).prop('id') + '_add'];
                                                         if(typeof functionAdd == 'function') {
-                                                            var gridData = JSON.parse(data[i].${fieldsMapping[field]!});
+                                                            var gridData = JSON.parse(item.${fieldsMapping[field]!});
                                                             for(var j in gridData) {
                                                                 functionAdd({result : JSON.stringify(gridData[j])});
                                                             }
                                                         }
                                                     } catch (e) { }
                                                 });
-                                            <#elseif fieldType! == 'SELECT_BOXES'>
-                                                $("select[name='" + prefix + "${field!}']").each(function() {
-                                                    $(this).val(data[i].${fieldsMapping[field]!}.split(/;/)).trigger("change");
-                                                    $(this).trigger("chosen:updated");
-                                                });
                                             <#else>
-                                                $("[name='" + prefix + "${field!}']").each(function() {
-                                                    $(this).val(data[i].${fieldsMapping[field]!});
+                                                $selector.each(function() {
+                                                    $(this).val(item.${fieldsMapping[field]!});
                                                     $(this).trigger("change");
                                                 });
                                             </#if>
                                         }
-                                    </#list>
+                                    }
                                 }
-                            }
+                            </#list>
                         })
                         .fail(function() {
                             $('img#${elementId!}_loading').hide();
