@@ -9,7 +9,9 @@ import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.datalist.model.DataList;
 import org.joget.apps.datalist.model.DataListColumn;
 import org.joget.apps.datalist.service.DataListService;
+import org.joget.apps.form.model.Element;
 import org.joget.apps.form.model.Form;
+import org.joget.apps.form.model.Section;
 import org.joget.apps.form.service.FormService;
 import org.joget.commons.util.LogUtil;
 import org.springframework.context.ApplicationContext;
@@ -76,5 +78,23 @@ public class Utilities {
         }
 
         return dataList;
+    }
+
+    /**
+     * get element's section
+     *
+     * @param element
+     * @return
+     */
+    public static Section getElementSection(Element element) {
+        if(element == null) {
+            return null;
+        }
+
+        if(element instanceof Section) {
+            return (Section) element;
+        }
+
+        return getElementSection(element.getParent());
     }
 }

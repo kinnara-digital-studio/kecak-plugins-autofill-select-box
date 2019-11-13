@@ -49,6 +49,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 	private final static String PARAMETER_APP_VERSION = "appVersion";
 
 	private final static String BODY_FORM_ID = "FORM_ID";
+	private final static String BODY_SECTION_ID = "SECTION_ID";
 	private final static String BODY_FIELD_ID = "FIELD_ID";
 
 	private final static String PROPERTY_AUTOFILL_LOAD_BINDER = "autofillLoadBinder";
@@ -161,6 +162,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 				final String appVersion = body.getString(PARAMETER_APP_VERSION);
 				final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
 				final String formDefId = body.getString(BODY_FORM_ID);
+				final String sectionId = body.getString(BODY_SECTION_ID);
 				final String fieldId = body.getString(BODY_FIELD_ID);
 
 				JSONObject autofillRequestParameter = body.getJSONObject("autofillRequestParameter");
@@ -168,7 +170,8 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 				// build form
 				Form form = generateForm(appDefinition, formDefId);
 				FormData formData = new FormData();
-				Element elementSelectBox = FormUtil.findElement(fieldId, form, formData, true);
+				Element section = FormUtil.findElement(sectionId, form, formData, true);
+				Element elementSelectBox = FormUtil.findElement(fieldId, section, formData, true);
 				Map<String, Object> autofillLoadBinder = (Map<String, Object>) elementSelectBox.getProperty(PROPERTY_AUTOFILL_LOAD_BINDER);
 
 				PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
@@ -387,6 +390,11 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 			Map<String, Object> autofillLoadBinder = (Map<String, Object>) getProperty(PROPERTY_AUTOFILL_LOAD_BINDER);
 			if (autofillLoadBinder != null) {
 				requestBody.put(BODY_FIELD_ID, getPropertyString(FormUtil.PROPERTY_ID));
+			}
+
+			Section section = Utilities.getElementSection(this);
+			if(section != null) {
+				requestBody.put(BODY_SECTION_ID, section.getPropertyString(FormUtil.PROPERTY_ID));
 			}
 
 			dataModel.put("requestBody", requestBody);
