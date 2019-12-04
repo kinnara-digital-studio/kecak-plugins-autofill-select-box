@@ -1,4 +1,4 @@
-<div class="form-cell" ${elementMetaData!}>
+<div class="form-cell form-group" ${elementMetaData!}>
 	<link rel="stylesheet" href="${request.contextPath}/plugin/${className}/bower_components/select2/dist/css/select2.min.css" />
 
     <script type="text/javascript" src="${request.contextPath}/plugin/${className}/bower_components/select2/dist/js/select2.min.js"></script>
