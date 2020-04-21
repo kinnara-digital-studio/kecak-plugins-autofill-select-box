@@ -40,7 +40,7 @@ import java.util.stream.Stream;
  * Autofill other elements based on this element's value as ID
  * 
  */
-public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
+public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, AceFormElement, AdminLteFormElement{
 	private final WeakHashMap<String, Form> formCache = new WeakHashMap<>();
 
 	private Element controlElement;
@@ -321,12 +321,14 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 
 		return rowSet;
 	}
-
 	@Override
 	public String renderTemplate(FormData formData, Map dataModel) {
-		dataModel.replace("element", this);
+		String template = "AutofillSelectBox.ftl";
+		return renderTemplate(formData,dataModel,template);
+	}
 
-        String template = "AutofillSelectBox.ftl";
+	public String renderTemplate(FormData formData, Map dataModel, String template) {
+		dataModel.replace("element", this);
         Form rootForm = FormUtil.findRootForm(this);
 
         dynamicOptions(formData);
@@ -653,5 +655,17 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 			return SecurityUtil.decrypt(protectedContent);
 		}
 		return protectedContent;
+	}
+
+	@Override
+	public String renderAceTemplate(FormData formData, Map map) {
+		String template = "AutofillSelectBoxAce.ftl";
+		return renderTemplate(formData,map,template);
+	}
+
+	@Override
+	public String renderAdminLteTemplate(FormData formData, Map map) {
+		String template = "AutofillSelectBoxAdminLte.ftl";
+		return renderTemplate(formData,map,template);
 	}
 }

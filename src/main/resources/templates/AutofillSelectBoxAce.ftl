@@ -1,4 +1,4 @@
-<div class="form-cell" ${elementMetaData!}>
+<div class="form-cell form-group" ${elementMetaData!}>
 	<link rel="stylesheet" href="${request.contextPath}/plugin/${className}/bower_components/select2/dist/css/select2.min.css" />
 
     <script type="text/javascript" src="${request.contextPath}/plugin/${className}/bower_components/select2/dist/js/select2.min.js"></script>
@@ -7,7 +7,7 @@
 	
 	<#assign elementId = elementParamName + element.properties.elementUniqueKey>
 	
-    <label class="label">${element.properties.label} <span class="form-cell-validator">${decoration}</span><#if error??> <span class="form-error-message">${error}</span></#if></label>
+    <label class="control-label">${element.properties.label} <span class="form-cell-validator">${decoration}</span><#if error??> <span class="form-error-message">${error}</span></#if></label>
 
     <#if includeMetaData>
         <span class="form-floating-label">${fieldType}</span>
@@ -26,7 +26,7 @@
         </div>
         <div style="clear:both;"></div>
     <#else>
-        <select class="js-select2" id="${elementId}" <#if element.properties.multiple! == 'true'>multiple</#if> name="${elementParamName!}" <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
+        <select id="${elementId}" <#if element.properties.multiple! == 'true'>multiple</#if> name="${elementParamName!}" class="js-select2 form-control <#if error??>form-error-cell</#if>" <#if element.properties.readonly! == 'true'> disabled </#if>>
             <#if element.properties.lazyLoading! != 'true' >
                 <#list options! as option>
                     <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
@@ -68,8 +68,7 @@
             $(document).ready(function(){
                 $('#${elementId!}.js-select2').select2({
                     //placeholder: '${element.properties.placeholder!}',
-                    width : '${width!}',
-                    theme : 'classic',
+                    width : '100%',
                     language : {
                        errorLoading: () => '${element.properties.messageErrorLoading!}',
                        loadingMore: () => '${element.properties.messageLoadingMore!}',
@@ -140,7 +139,7 @@
                         if(!(jsonData['FORM_ID'] && jsonData['FIELD_ID']))
                             return;
 
-                        jsonData.requestParameter = new Object();
+                        jsonData.autofillRequestParameter = new Object();
 
                         <#-- BETA -->
                         // set input fields as request parameter
@@ -151,7 +150,7 @@
                         $('input[name^="' + prefix + '"]').each(function() {
                             var name = $(this).attr('name');
                             if(name) {
-                                jsonData.requestParameter[name.replace(patternPrefix, '')] = $(this).val();
+                                jsonData.autofillRequestParameter[name.replace(patternPrefix, '')] = $(this).val();
                             }
                         });
 
