@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 
@@ -165,7 +166,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 				final String sectionId = body.getString(BODY_SECTION_ID);
 				final String fieldId = body.getString(BODY_FIELD_ID);
 
-				JSONObject autofillRequestParameter = body.getJSONObject("autofillRequestParameter");
+				JSONObject requestParameter = body.getJSONObject("requestParameter");
 
 				// build form
 				Form form = generateForm(appDefinition, formDefId);
@@ -189,10 +190,10 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 						LogUtil.error(getClassName(), e, "Error configuring load binder");
 					}
 
-					autofillRequestParameter.put(PARAMETER_APP_ID, appId);
-					autofillRequestParameter.put(PARAMETER_APP_VERSION, appVersion);
+					requestParameter.put(PARAMETER_APP_ID, appId);
+					requestParameter.put(PARAMETER_APP_VERSION, appVersion);
 
-					JSONArray data = loadFormData(form, primaryKey, autofillRequestParameter);
+					JSONObject data = loadFormData(form, primaryKey, requestParameter);
 	
 					response.setStatus(HttpServletResponse.SC_OK);
 					response.getWriter().write(data.toString());
@@ -559,8 +560,16 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 		}
 		return result;
 	}
-	
-	private JSONArray loadFormData(Form form, String primaryKey, JSONObject jsonRequestParameter) {
+
+	/**
+	 * Load Form Data
+	 *
+	 * @param form
+	 * @param primaryKey
+	 * @param jsonRequestParameter
+	 * @return
+	 */
+	private JSONObject loadFormData(Form form, String primaryKey, JSONObject jsonRequestParameter) {
 		ApplicationContext appContext = AppUtil.getApplicationContext();
 		FormService formService = (FormService) appContext.getBean("formService");
 		FormData formData = new FormData();
@@ -575,8 +584,12 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport{
 		}
 
 		formData = formService.executeFormLoadBinders(form, formData);
-		FormRowSet rowSet = formData.getLoadBinderData(form);		
-		return formRowSetToJson(rowSet);
+		return Optional.ofNullable(formData.getLoadBinderData(form))
+				.map(Collection::stream)
+				.orElseGet(Stream::empty)
+				.findFirst()
+				.map(JSONObject::new)
+				.orElseGet(JSONObject::new);
 	}
 
 	private Form generateForm(AppDefinition appDef, String formDefId) {
