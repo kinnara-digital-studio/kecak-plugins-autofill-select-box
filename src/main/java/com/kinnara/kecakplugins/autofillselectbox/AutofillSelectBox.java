@@ -342,14 +342,13 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 		final List<String> databaseEncryptedValues = new ArrayList<>();
 
 		@Nonnull
-		final List<Map<String, String>> optionsMap = getOptionMap(formData)
+		final List<FormRow> optionsMap = getOptionMap(formData)
 				.stream()
-				.map(m -> (Map<String,String>)m)
-				.peek(m -> {
-					final String value = m.get(FormUtil.PROPERTY_VALUE);
+				.peek(r -> {
+					final String value = r.getProperty(FormUtil.PROPERTY_VALUE);
 					final String encrypted = encrypt(value);
 
-					m.put(FormUtil.PROPERTY_VALUE, encrypted);
+					r.put(FormUtil.PROPERTY_VALUE, encrypted);
 
 					if(databasePlainValues.stream().anyMatch(s -> s.equals(value))) {
 						databaseEncryptedValues.add(encrypted);
@@ -366,11 +365,11 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 					Map<String, String> map = new HashMap<>();
 					map.put("value", s);
 
-					final Map<String, String> lookingFor = new HashMap<>();
+					final FormRow lookingFor = new FormRow();
 					lookingFor.put("value", s);
 
-					int index = Collections.binarySearch(optionsMap, lookingFor, Comparator.comparing(m -> m.get("value")));
-					map.put("label", index >= 0 ? optionsMap.get(index).get("label") : s);
+					int index = Collections.binarySearch(optionsMap, lookingFor, Comparator.comparing(m -> m.getProperty("value")));
+					map.put("label", index >= 0 ? optionsMap.get(index).getProperty(FormUtil.PROPERTY_LABEL) : s);
 					return map;
 				})
 				.collect(Collectors.toList());
