@@ -593,7 +593,8 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 				.orElseGet(JSONObject::new);
 	}
 
-	private Form generateForm(AppDefinition appDef, String formDefId) {
+	@Override
+	protected Form generateForm(AppDefinition appDef, String formDefId) {
 		ApplicationContext appContext = AppUtil.getApplicationContext();
 		FormService formService = (FormService) appContext.getBean("formService");
 		FormDefinitionDao formDefinitionDao = (FormDefinitionDao)appContext.getBean("formDefinitionDao");
