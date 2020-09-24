@@ -207,7 +207,7 @@
                             }
 
                             let i = 0;
-                            let item = data[i];
+                            let item = data;
 
                             <#list fieldsMapping?keys! as field>
                                 if(item.${fieldsMapping[field]!}) {
