@@ -1,5 +1,7 @@
 package com.kinnara.kecakplugins.autofillselectbox;
 
+import com.kinnara.kecakplugins.autofillselectbox.commons.AutofillException;
+import com.kinnara.kecakplugins.autofillselectbox.commons.RestApiException;
 import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
@@ -63,156 +65,163 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 		final ApplicationContext appContext = AppUtil.getApplicationContext();
 		final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
 
-		if("GET".equals(request.getMethod())) {
-		    // Get Options Binder Data
-			final String appId = request.getParameter("appId");
-			final String appVersion = request.getParameter("appVersion");
-			final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
+		try {
+			if ("GET".equals(request.getMethod())) {
+				// Get Options Binder Data
+				final String appId = request.getParameter("appId");
+				final String appVersion = request.getParameter("appVersion");
+				final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
 
-			// method for paging
-			final String formDefId = request.getParameter("formDefId");
-			final String[] fieldIds = request.getParameterValues("fieldId");
-			final String search = request.getParameter("search");
-			final Pattern searchPattern = Pattern.compile(search == null ? "" : search, Pattern.CASE_INSENSITIVE);
-			final long page = request.getParameter("page") == null ? PAGE_SIZE : Long.parseLong(request.getParameter("page"));
-			final String grouping = request.getParameter("grouping");
+				// method for paging
+				final String formDefId = getRequiredParameter(request, "formDefId");
+				final String[] fieldIds = request.getParameterValues("fieldId");
+				final String search = request.getParameter("search");
+				final Pattern searchPattern = Pattern.compile(search == null ? "" : search, Pattern.CASE_INSENSITIVE);
+				final long page = request.getParameter("page") == null ? PAGE_SIZE : Long.parseLong(request.getParameter("page"));
+				final String grouping = request.getParameter("grouping");
 
-			final FormData formData = new FormData();
-			final Form form = generateForm(appDefinition, formDefId);
+				final FormData formData = new FormData();
+				final Form form = generateForm(appDefinition, formDefId);
 
-			final JSONArray jsonResults = new JSONArray();
-			for (String fieldId : fieldIds) {
-				Element element = FormUtil.findElement(fieldId, form, formData);
-				if (element == null)
-					continue;
+				final JSONArray jsonResults = new JSONArray();
+				for (String fieldId : fieldIds) {
+					Element element = FormUtil.findElement(fieldId, form, formData);
+					if (element == null)
+						continue;
 
-				final boolean encryption = "true".equalsIgnoreCase(element.getPropertyString("encryption"));
+					final boolean encryption = "true".equalsIgnoreCase(element.getPropertyString("encryption"));
 
-				FormRowSet optionsRowSet;
-				if (element.getOptionsBinder() == null) {
-					optionsRowSet = (FormRowSet) element.getProperty(FormUtil.PROPERTY_OPTIONS);
-				} else {
-					FormUtil.executeOptionBinders(element, formData);
-					optionsRowSet = formData.getOptionsBinderData(element, null);
-				}
+					FormRowSet optionsRowSet;
+					if (element.getOptionsBinder() == null) {
+						optionsRowSet = (FormRowSet) element.getProperty(FormUtil.PROPERTY_OPTIONS);
+					} else {
+						FormUtil.executeOptionBinders(element, formData);
+						optionsRowSet = formData.getOptionsBinderData(element, null);
+					}
 
-				int skip = (int) ((page - 1) * PAGE_SIZE);
-				int pageSize = (int) PAGE_SIZE;
-				for (int i = 0, size = optionsRowSet.size(); i < size && pageSize > 0; i++) {
-					FormRow formRow = optionsRowSet.get(i);
-					if (searchPattern.matcher(formRow.getProperty(FormUtil.PROPERTY_LABEL)).find() && (
-							grouping == null
-									|| grouping.isEmpty()
-									|| grouping.equalsIgnoreCase(formRow.getProperty(FormUtil.PROPERTY_GROUPING)))) {
+					int skip = (int) ((page - 1) * PAGE_SIZE);
+					int pageSize = (int) PAGE_SIZE;
+					for (int i = 0, size = optionsRowSet.size(); i < size && pageSize > 0; i++) {
+						FormRow formRow = optionsRowSet.get(i);
+						if (searchPattern.matcher(formRow.getProperty(FormUtil.PROPERTY_LABEL)).find() && (
+								grouping == null
+										|| grouping.isEmpty()
+										|| grouping.equalsIgnoreCase(formRow.getProperty(FormUtil.PROPERTY_GROUPING)))) {
 
-						if (skip > 0) {
-							skip--;
-						} else {
-							try {
-								JSONObject jsonResult = new JSONObject();
-								jsonResult.put("id", encrypt(formRow.getProperty(FormUtil.PROPERTY_VALUE), encryption));
-								jsonResult.put("text", formRow.getProperty(FormUtil.PROPERTY_LABEL));
-								jsonResults.put(jsonResult);
-								pageSize--;
-							} catch (JSONException ignored) {
+							if (skip > 0) {
+								skip--;
+							} else {
+								try {
+									JSONObject jsonResult = new JSONObject();
+									jsonResult.put("id", encrypt(formRow.getProperty(FormUtil.PROPERTY_VALUE), encryption));
+									jsonResult.put("text", formRow.getProperty(FormUtil.PROPERTY_LABEL));
+									jsonResults.put(jsonResult);
+									pageSize--;
+								} catch (JSONException ignored) {
+								}
 							}
 						}
 					}
 				}
-			}
 
-			// I wonder why these codes don't work; they got some NULL POINTER EXCEPTION
-			//        JSONArray jsonResults = new JSONArray((optionsRowSet).stream()
-			//                .filter(Objects::nonNull)
-			//                .filter(formRow -> searchPattern.matcher(formRow.getProperty(FormUtil.PROPERTY_LABEL)).find())
-			//                .filter(formRow -> grouping == null
-			//                        || formRow.getProperty(FormUtil.PROPERTY_GROUPING) == null
-			//                        || grouping.isEmpty()
-			//                        || formRow.getProperty(FormUtil.PROPERTY_GROUPING).isEmpty()
-			//                        || grouping.equalsIgnoreCase(formRow.getProperty(FormUtil.PROPERTY_GROUPING)))
-			//                .skip((page - 1) * PAGE_SIZE)
-			//                .limit(PAGE_SIZE)
-			//                .map(formRow -> {
-			//                    final Map<String, String> map = new HashMap<>();
-			//                    map.put("id", formRow.getProperty(FormUtil.PROPERTY_VALUE));
-			//                    map.put("text", formRow.getProperty(FormUtil.PROPERTY_LABEL));
-			//                    return map;
-			//                })
-			//                .collect(Collectors.toList()));
+				// I wonder why these codes don't work; they got some NULL POINTER EXCEPTION
+				//        JSONArray jsonResults = new JSONArray((optionsRowSet).stream()
+				//                .filter(Objects::nonNull)
+				//                .filter(formRow -> searchPattern.matcher(formRow.getProperty(FormUtil.PROPERTY_LABEL)).find())
+				//                .filter(formRow -> grouping == null
+				//                        || formRow.getProperty(FormUtil.PROPERTY_GROUPING) == null
+				//                        || grouping.isEmpty()
+				//                        || formRow.getProperty(FormUtil.PROPERTY_GROUPING).isEmpty()
+				//                        || grouping.equalsIgnoreCase(formRow.getProperty(FormUtil.PROPERTY_GROUPING)))
+				//                .skip((page - 1) * PAGE_SIZE)
+				//                .limit(PAGE_SIZE)
+				//                .map(formRow -> {
+				//                    final Map<String, String> map = new HashMap<>();
+				//                    map.put("id", formRow.getProperty(FormUtil.PROPERTY_VALUE));
+				//                    map.put("text", formRow.getProperty(FormUtil.PROPERTY_LABEL));
+				//                    return map;
+				//                })
+				//                .collect(Collectors.toList()));
 
-			try {
-				JSONObject jsonPagination = new JSONObject();
-				jsonPagination.put("more", jsonResults.length() >= PAGE_SIZE);
+				try {
+					JSONObject jsonPagination = new JSONObject();
+					jsonPagination.put("more", jsonResults.length() >= PAGE_SIZE);
 
-				JSONObject jsonData = new JSONObject();
-				jsonData.put("results", jsonResults);
-				jsonData.put("pagination", jsonPagination);
+					JSONObject jsonData = new JSONObject();
+					jsonData.put("results", jsonResults);
+					jsonData.put("pagination", jsonPagination);
 
-				response.setContentType("application/json");
-				response.getWriter().write(jsonData.toString());
-			} catch (JSONException e) {
-				LogUtil.error(getClassName(), e, e.getMessage());
-				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-			}
-		} else if("POST".equals(request.getMethod())) {
+					response.setContentType("application/json");
+					response.getWriter().write(jsonData.toString());
+				} catch (JSONException e) {
+					throw new RestApiException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
+				}
+			} else if ("POST".equals(request.getMethod())) {
 
-			try {
-				JSONObject body = constructRequestBody(request);
+				try {
+					JSONObject body = constructRequestBody(request);
 
-				final String appId = body.getString(PARAMETER_APP_ID);
-				final String appVersion = body.getString(PARAMETER_APP_VERSION);
-				final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
-				final String formDefId = body.getString(BODY_FORM_ID);
-				final String sectionId = body.getString(BODY_SECTION_ID);
-				final String fieldId = body.getString(BODY_FIELD_ID);
+					final String appId = body.getString(PARAMETER_APP_ID);
+					final String appVersion = body.getString(PARAMETER_APP_VERSION);
+					final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
+					final String formDefId = getRequiredBodyPayload(body, BODY_FORM_ID);
+					final String sectionId = getRequiredBodyPayload(body, BODY_SECTION_ID);
+					final String fieldId = getRequiredBodyPayload(body, BODY_FIELD_ID);
 
-				JSONObject requestParameter = body.getJSONObject("requestParameter");
+					JSONObject requestParameter = body.getJSONObject("requestParameter");
 
-				// build form
-				Form form = generateForm(appDefinition, formDefId);
-				FormData formData = new FormData();
-				Element section = FormUtil.findElement(sectionId, form, formData, true);
-				Element elementSelectBox = FormUtil.findElement(fieldId, section, formData, true);
-				Map<String, Object> autofillLoadBinder = (Map<String, Object>) elementSelectBox.getProperty(PROPERTY_AUTOFILL_LOAD_BINDER);
+					// build form
+					@Nonnull
+					Form form = Optional.ofNullable(appDefinition)
+							.map(a -> generateForm(a, formDefId))
+							.orElseThrow(() -> new RestApiException(HttpServletResponse.SC_BAD_REQUEST, "Error generating form [" + formDefId + "]"));
 
-				PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
-				FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(String.valueOf(autofillLoadBinder.get(FormUtil.PROPERTY_CLASS_NAME)));
+					FormData formData = new FormData();
+					Element section = FormUtil.findElement(sectionId, form, formData, true);
+					Element elementSelectBox = FormUtil.findElement(fieldId, section, formData, true);
+					Map<String, Object> autofillLoadBinder = (Map<String, Object>) elementSelectBox.getProperty(PROPERTY_AUTOFILL_LOAD_BINDER);
 
-				boolean encryption = "true".equalsIgnoreCase(elementSelectBox.getPropertyString("encryption"));
-				String primaryKey = decrypt(body.getString(PARAMETER_ID), encryption);
-								
-				if(form != null && loadBinder != null) {
-					try {
-						Map<String, Object> properties = (Map<String, Object>) autofillLoadBinder.get(FormUtil.PROPERTY_PROPERTIES);
-						loadBinder.setProperties(properties);
-						form.setLoadBinder((FormLoadBinder) loadBinder);
-					} catch (Exception e) {
-						LogUtil.error(getClassName(), e, "Error configuring load binder");
+					PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
+					FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(String.valueOf(autofillLoadBinder.get(FormUtil.PROPERTY_CLASS_NAME)));
+
+					boolean encryption = "true".equalsIgnoreCase(elementSelectBox.getPropertyString("encryption"));
+					String primaryKey = decrypt(body.getString(PARAMETER_ID), encryption);
+
+					if (loadBinder != null) {
+						try {
+							Map<String, Object> properties = (Map<String, Object>) autofillLoadBinder.get(FormUtil.PROPERTY_PROPERTIES);
+							loadBinder.setProperties(properties);
+							form.setLoadBinder((FormLoadBinder) loadBinder);
+						} catch (Exception e) {
+							LogUtil.error(getClassName(), e, "Error configuring load binder");
+						}
+
+						requestParameter.put(PARAMETER_APP_ID, appId);
+						requestParameter.put(PARAMETER_APP_VERSION, appVersion);
+
+						JSONObject data = loadFormData(form, primaryKey, requestParameter);
+
+						response.setStatus(HttpServletResponse.SC_OK);
+						response.getWriter().write(data.toString());
+					} else {
+						throw new RestApiException(HttpServletResponse.SC_NOT_FOUND, "Load binder not found");
 					}
 
-					requestParameter.put(PARAMETER_APP_ID, appId);
-					requestParameter.put(PARAMETER_APP_VERSION, appVersion);
-
-					JSONObject data = loadFormData(form, primaryKey, requestParameter);
-	
-					response.setStatus(HttpServletResponse.SC_OK);
-					response.getWriter().write(data.toString());
-				} else {
-					response.sendError(HttpServletResponse.SC_NOT_FOUND);	
+				} catch (JSONException e) {
+					throw new RestApiException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
 				}
-				
-			} catch (JSONException e) {
-				LogUtil.error(getClassName(), e, e.getMessage());
-				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			} else {
+				throw new RestApiException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method [" + request.getMethod() + "] is not supported");
 			}
-		} else {
-			response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+		} catch (RestApiException e) {
+			response.sendError(e.getErrorCode(), e.getMessage());
+			LogUtil.error(getClassName(), e, e.getMessage());
 		}
 	}
 	
 	@Override
 	public String getLabel() {
-		return getName();
+		return "Autofill SelectBox";
 	}
 
 	@Override
@@ -222,26 +231,12 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 
 	@Override
 	public String getPropertyOptions() {
-		String encryption = "";
-        if (SecurityUtil.getDataEncryption() != null) {
-            encryption = ",{name : 'encryption', label : '@@form.textfield.encryption@@', type : 'checkbox', value : 'false', ";
-            encryption += "options : [{value : 'true', label : '' }]}";
-        }
-        
-        String selectForm;
-        AppDefinition appDef = AppUtil.getCurrentAppDefinition();
-        if (appDef != null) {
-            String formJsonUrl = "[CONTEXT_PATH]/web/json/console/app/" + appDef.getId() + "/" + appDef.getVersion() + "/forms/options";
-            selectForm = "{name:'selectForm',label:'Form',type:'selectbox',options_ajax:'" + formJsonUrl + "',required : 'True'}";
-        } else {
-            selectForm = "{name:'selectForm',label:'Form',type:'textfield',required : 'True'}";
-        }
-        return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillSelectBox.json", new String[]{PROPERTY_AUTOFILL_LOAD_BINDER}, true, "message/form/SelectBox");
+		return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillSelectBox.json", new String[]{PROPERTY_AUTOFILL_LOAD_BINDER}, true, "message/form/SelectBox").replaceAll("\"", "'");
 	}
 
 	@Override
 	public String getName() {
-		return "Autofill SelectBox";
+		return getLabel() + getVersion();
 	}
 
 	@Override
@@ -593,31 +588,6 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 				.orElseGet(JSONObject::new);
 	}
 
-	@Override
-	protected Form generateForm(AppDefinition appDef, String formDefId) {
-		ApplicationContext appContext = AppUtil.getApplicationContext();
-		FormService formService = (FormService) appContext.getBean("formService");
-		FormDefinitionDao formDefinitionDao = (FormDefinitionDao)appContext.getBean("formDefinitionDao");
-
-		// check in cache
-		if(formCache.containsKey(formDefId))
-			return formCache.get(formDefId);
-
-		// proceed without cache
-		if (appDef != null && formDefId != null && !formDefId.isEmpty()) {
-			FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
-			if (formDef != null) {
-				String json = formDef.getJson();
-				Form form = (Form)formService.createElementFromJson(json);
-
-				formCache.put(formDefId, form);
-
-				return form;
-			}
-		}
-		return null;
-	}
-
 	protected String encrypt(String rawContent) {
 		return encrypt(rawContent, "true".equalsIgnoreCase(getPropertyString("encryption")));
 	}
@@ -667,5 +637,25 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 	public String renderAdminLteTemplate(FormData formData, Map map) {
 		String template = "AutofillSelectBoxAdminLte.ftl";
 		return renderTemplate(formData,map,template);
+	}
+
+	protected String getRequiredBodyPayload(JSONObject payload, String key) throws RestApiException {
+		return Optional.ofNullable(payload)
+				.map(j -> j.optString(key))
+				.orElseThrow(() -> new RestApiException(HttpServletResponse.SC_BAD_REQUEST, "Body payload [" + key + "] is not found"));
+	}
+
+	protected String getOptionalBodyPayload(JSONObject payload, String key, String defaultValue) {
+		return Optional.ofNullable(payload)
+				.map(j -> j.optString(key))
+				.filter(s -> !s.isEmpty())
+				.orElse(defaultValue);
+	}
+
+	protected String getRequiredParameter(HttpServletRequest request, String key) throws RestApiException {
+		return Optional.of(key)
+				.map(request::getParameter)
+				.filter(s -> !s.isEmpty())
+				.orElseThrow(() -> new RestApiException(HttpServletResponse.SC_BAD_REQUEST, "Missing request parameter ["+key+"]"));
 	}
 }

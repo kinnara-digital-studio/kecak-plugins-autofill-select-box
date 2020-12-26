@@ -1,274 +1,301 @@
-[{
-    title : '@@form.selectbox.editSelectBox@@',
-    properties : [{
-        name : 'id',
-        label : '@@form.selectbox.id@@',
-        type : 'textfield',
-        required : 'True',
-        regex_validation : '^[a-zA-Z0-9_]+$',
-        validation_message : '@@form.selectbox.invalidId@@'
-    },
-    {
-        name : 'label',
-        label : '@@form.selectbox.label@@',
-        type : 'textfield',
-        value : 'Autofill SelectBox'
-    },
-    {
-        name : 'options',
-        label : '@@form.selectbox.options@@',
-        type : 'grid',
-        columns : [{
-            key : 'value',
-            label : '@@form.selectbox.value@@'
-        },
-        {
-            key : 'label',
-            label : '@@form.selectbox.label@@'
-        },
-        {
-            key : 'grouping',
-            label : '@@form.selectbox.grouping@@'
-        }]
-    },
-    {
-        name : 'optionsBinder',
-        label : '@@form.selectbox.chooseOptionsBinder@@',
-        type : 'elementselect',
-        options_ajax : '[CONTEXT_PATH]/web/property/json/getElements?classname=org.joget.apps.form.model.FormLoadOptionsBinder',
-        url : '[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions'
-    }]
-},
-{
-    title : '@@form.selectbox.advancedOptions@@',
-    properties : [{
-        label : '@@form.selectbox.data@@',
-        type : 'header'
-    },
-    {
-        name : 'value',
-        description : '@@form.selectbox.value.desc@@',
-        label : '@@form.selectbox.value@@',
-        type : 'textfield'
-    },
-    {
-        name : 'multiple',
-        label : '@@form.selectbox.multipleSelection@@',
-        type : 'hidden',
-        value : 'False'
-    },
-    {
-        name : 'validator',
-        label : '@@form.selectbox.validator@@',
-        type : 'elementselect',
-        options_ajax : '[CONTEXT_PATH]/web/property/json/getElements?classname=org.joget.apps.form.model.FormValidator',
-        url : '[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions'
-    },
-    {
-        label : '@@form.selectbox.dependency@@',
-        type : 'header'
-    },
-    {
-    	name : 'removeDuplicates',
-    	label : '@@form.selectbox.removeDuplicates@@',
-    	description : '@@form.selectbox.removeDuplicates.description@@',
-    	type : 'checkbox',
-    	value : 'false',
-    	options : [{
-    		value : 'true',
-    		label : ''
-    	}]
-    },
-    {
-        name : 'controlField',
-        label : '@@form.selectbox.controlField@@',
-        type : 'textfield'
-    },
-    {
-        label : '@@form.selectbox.ui@@',
-        type : 'header'
-    },
-    {
-        name : 'modernStyle',
-        label : '@@form.selectbox.modernStyle@@',
-        type : 'hidden',
-        value : 'true'
-    },
-    {
-        name : 'size',
-        label : '@@form.selectbox.size@@',
-        type : 'textfield',
-        value : '20'
-    },
-    {
-        name : 'readonly',
-        label : '@@form.selectbox.readonly@@',
-        type : 'checkbox',
-        value : 'False',
-        options : [{
-            value : 'true',
-            label : ''
-        }]
-    },
-    {
-        name : 'readonlyLabel',
-        label : '@@form.selectbox.readonlyLabel@@',
-        type : 'checkbox',
-        value : 'False',
-        options : [{
-            value : 'true',
-            label : ''
-        }]
-    },
-      {
-        name : 'encryption',
-        label : 'UI Value Encryption',
-        type : 'checkbox',
-        value : 'true',
-        options : [
-          {
-            value : 'true',
-            label : ''
-          }
-        ]
-      },
-    {
-        label : '@@form.selectbox.workflow@@',
-        type : 'header'
-    },
-    {
-        name : 'workflowVariable',
-        label : '@@form.selectbox.workflowVariable@@',
-        type : 'textfield'
-    },
-      {
-        label : '@@form.selectbox.select2Options@@',
-        type : 'header'
-      },
-      {
-        name : 'lazyLoading',
-        label : '@@form.selectbox.lazyLoading@@',
-        type : 'checkbox',
-        value : '',
-        options : [{
-          value : 'true',
-          label : ''
-        }]
-      },
-      {
-        name : 'placeholder',
-        label : '@@form.selectbox.placeholder@@',
-        type : 'textfield',
-        value : 'Please Select',
-      },
-      {
-        name : 'messageSearching',
-        label : '@@form.selectbox.messageSearching@@',
-        type : 'textfield',
-        required : 'true',
-        value : 'Searching...',
-        control_field : 'modernStyle',
-        control_value : 'true'
-      },
-      {
-        name : 'messageLoadingMore',
-        label : '@@form.selectbox.messageLoadingMore@@',
-        type : 'textfield',
-        required : 'true',
-        value : 'Loading More...',
-        control_field : 'modernStyle',
-        control_value : 'true'
-      },
-      {
-        name : 'messageNoResults',
-        label : '@@form.selectbox.messageNoResults@@',
-        type : 'textfield',
-        required : 'true',
-        value : 'No Results Found',
-        control_field : 'modernStyle',
-        control_value : 'true'
-      },
-      {
-        name : 'messageErrorLoading',
-        label : '@@form.selectbox.messageErrorLoading@@',
-        type : 'textfield',
-        required : 'true',
-        value : 'Error Loading',
-        control_field : 'modernStyle',
-        control_value : 'true'
-      }]
-},
-{
-	title : 'Autofill',
-	properties : [
-		{
-			name : '%s',
-			label : 'Autofill Load Binder',
-			type : 'elementselect',
-			options_ajax : '[CONTEXT_PATH]/web/property/json/getElements?classname=org.joget.apps.form.model.FormLoadElementBinder',
-        	url : '[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions',
-        	description : 'Leave Result Data Field empty to ignore field mapping'
-		},
-        {
-            name : 'triggerOnPageLoad',
-            label : 'Trigger Autofill On Page Load',
-            type : 'checkbox',
-            value : 'true',
-            options : [
-              {
-                value : 'true',
-                label : ''
-              }
-            ]
-        }
-	]
-},
+[
   {
-    title : 'Mapping',
-    properties : [
+    "title": "@@form.selectbox.editSelectBox@@",
+    "properties": [
       {
-        name : 'lazyMapping',
-        label : 'Lazy Mapping',
-        description : 'Auto map respective result fields',
-        type : 'checkbox',
-        value : 'true',
-        options : [
-          {
-            value : 'true',
-            label : ''
-          }
-        ]
+        "name": "id",
+        "label": "@@form.selectbox.id@@",
+        "type": "textfield",
+        "required": "True",
+        "regex_validation": "^[a-zA-Z0-9_]+$",
+        "validation_message": "@@form.selectbox.invalidId@@"
       },
       {
-        name : 'autofillFields',
-        label : 'Fields Mapping',
-        description : 'Leave Result Data Field empty if you want skip the mapping',
-        type : 'grid',
-        control_field : 'lazyMapping',
-        control_value : '',
-        columns : [
+        "name": "label",
+        "label": "@@form.selectbox.label@@",
+        "type": "textfield",
+        "value": "Autofill SelectBox"
+      },
+      {
+        "name": "options",
+        "label": "@@form.selectbox.options@@",
+        "type": "grid",
+        "columns": [
           {
-            key : 'formField',
-            label : 'Form Field to Fill',
-            required : 'true'
+            "key": "value",
+            "label": "@@form.selectbox.value@@"
           },
           {
-            key : 'resultField',
-            label : 'Result Data Field'
+            "key": "label",
+            "label": "@@form.selectbox.label@@"
+          },
+          {
+            "key": "grouping",
+            "label": "@@form.selectbox.grouping@@"
           }
         ]
       },
       {
-        name : 'targetFieldAsReadonly',
-        label : 'Target Field As Readonly',
-        type : 'checkbox',
-        value : '',
-        control_field : 'lazyMapping',
-        control_value : '',
-        options : [
+        "name": "optionsBinder",
+        "label": "@@form.selectbox.chooseOptionsBinder@@",
+        "type": "elementselect",
+        "options_ajax": "[CONTEXT_PATH]/web/property/json/getElements?classname=org.joget.apps.form.model.FormLoadOptionsBinder",
+        "url": "[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions"
+      }
+    ]
+  },
+  {
+    "title": "@@form.selectbox.advancedOptions@@",
+    "properties": [
+      {
+        "label": "@@form.selectbox.data@@",
+        "type": "header"
+      },
+      {
+        "name": "value",
+        "description": "@@form.selectbox.value.desc@@",
+        "label": "@@form.selectbox.value@@",
+        "type": "textfield"
+      },
+      {
+        "name": "multiple",
+        "label": "@@form.selectbox.multipleSelection@@",
+        "type": "hidden",
+        "value": "False"
+      },
+      {
+        "name": "validator",
+        "label": "@@form.selectbox.validator@@",
+        "type": "elementselect",
+        "options_ajax": "[CONTEXT_PATH]/web/property/json/getElements?classname=org.joget.apps.form.model.FormValidator",
+        "url": "[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions"
+      },
+      {
+        "label": "@@form.selectbox.dependency@@",
+        "type": "header"
+      },
+      {
+        "name": "removeDuplicates",
+        "label": "@@form.selectbox.removeDuplicates@@",
+        "description": "@@form.selectbox.removeDuplicates.description@@",
+        "type": "checkbox",
+        "value": "false",
+        "options": [
           {
-            value : 'true',
-            label : ''
+            "value": "true",
+            "label": ""
+          }
+        ]
+      },
+      {
+        "name": "controlField",
+        "label": "@@form.selectbox.controlField@@",
+        "type": "textfield"
+      },
+      {
+        "label": "@@form.selectbox.ui@@",
+        "type": "header"
+      },
+      {
+        "name": "modernStyle",
+        "label": "@@form.selectbox.modernStyle@@",
+        "type": "hidden",
+        "value": "true"
+      },
+      {
+        "name": "size",
+        "label": "@@form.selectbox.size@@",
+        "type": "textfield",
+        "value": "20"
+      },
+      {
+        "name": "readonly",
+        "label": "@@form.selectbox.readonly@@",
+        "type": "checkbox",
+        "value": "False",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
+          }
+        ]
+      },
+      {
+        "name": "readonlyLabel",
+        "label": "@@form.selectbox.readonlyLabel@@",
+        "type": "checkbox",
+        "value": "False",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
+          }
+        ]
+      },
+      {
+        "name": "encryption",
+        "label": "UI Value Encryption",
+        "type": "checkbox",
+        "value": "true",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
+          }
+        ]
+      },
+      {
+        "label": "@@form.selectbox.workflow@@",
+        "type": "header"
+      },
+      {
+        "name": "workflowVariable",
+        "label": "@@form.selectbox.workflowVariable@@",
+        "type": "textfield"
+      },
+      {
+        "label": "@@form.selectbox.select2Options@@",
+        "type": "header"
+      },
+      {
+        "name": "lazyLoading",
+        "label": "@@form.selectbox.lazyLoading@@",
+        "type": "checkbox",
+        "value": "",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
+          }
+        ]
+      },
+      {
+        "name": "placeholder",
+        "label": "@@form.selectbox.placeholder@@",
+        "type": "textfield",
+        "value": "Please Select"
+      },
+      {
+        "name": "messageSearching",
+        "label": "@@form.selectbox.messageSearching@@",
+        "type": "textfield",
+        "required": "true",
+        "value": "Searching...",
+        "control_field": "modernStyle",
+        "control_value": "true"
+      },
+      {
+        "name": "messageLoadingMore",
+        "label": "@@form.selectbox.messageLoadingMore@@",
+        "type": "textfield",
+        "required": "true",
+        "value": "Loading More...",
+        "control_field": "modernStyle",
+        "control_value": "true"
+      },
+      {
+        "name": "messageNoResults",
+        "label": "@@form.selectbox.messageNoResults@@",
+        "type": "textfield",
+        "required": "true",
+        "value": "No Results Found",
+        "control_field": "modernStyle",
+        "control_value": "true"
+      },
+      {
+        "name": "messageErrorLoading",
+        "label": "@@form.selectbox.messageErrorLoading@@",
+        "type": "textfield",
+        "required": "true",
+        "value": "Error Loading",
+        "control_field": "modernStyle",
+        "control_value": "true"
+      }
+    ]
+  },
+  {
+    "title": "Autofill",
+    "properties": [
+      {
+        "name": "%s",
+        "label": "Autofill Load Binder",
+        "type": "elementselect",
+        "options_ajax": "[CONTEXT_PATH]/web/property/json/getElements?classname=org.joget.apps.form.model.FormLoadElementBinder",
+        "url": "[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions",
+        "description": "Leave Result Data Field empty to ignore field mapping"
+      },
+      {
+        "name": "triggerOnPageLoad",
+        "label": "Trigger Autofill On Page Load",
+        "type": "checkbox",
+        "value": "true",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
+          }
+        ]
+      },
+      {
+        "name": "dontOverwrite",
+        "label": "Do not overwrite filled fields",
+        "type": "checkbox",
+        "value": "true",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Mapping",
+    "properties": [
+      {
+        "name": "lazyMapping",
+        "label": "Lazy Mapping",
+        "description": "Auto map respective result fields",
+        "type": "checkbox",
+        "value": "true",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
+          }
+        ]
+      },
+      {
+        "name": "autofillFields",
+        "label": "Fields Mapping",
+        "description": "Leave Result Data Field empty if you want skip the mapping",
+        "type": "grid",
+        "control_field": "lazyMapping",
+        "control_value": "",
+        "columns": [
+          {
+            "key": "formField",
+            "label": "Form Field to Fill",
+            "required": "true"
+          },
+          {
+            "key": "resultField",
+            "label": "Result Data Field"
+          }
+        ]
+      },
+      {
+        "name": "targetFieldAsReadonly",
+        "label": "Target Field As Readonly",
+        "type": "checkbox",
+        "value": "",
+        "control_field": "lazyMapping",
+        "control_value": "",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
           }
         ]
       }

@@ -6,7 +6,7 @@
     <packaging>bundle</packaging>
     <version>1.2.3</version>
     <name>kecak-plugins-autofill-select-box</name>
-    <url>http://www.kinnarastudio.com</url>
+    <url>http://www.kecak.org</url>
     <build>
         <plugins>
             <plugin>

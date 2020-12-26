@@ -127,7 +127,7 @@
                 function trigger_${elementId}() {
                     <#if includeMetaData == false || requestBody?? >
                         var primaryKey = $('#${elementId}').val();
-                        var url = "${request.contextPath}/web/json/plugin/${className}/service";
+                        var url = '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service';
 
                         var jsonData = {
                             appId : '${appId!}',
@@ -228,8 +228,10 @@
                                             <!-- fieldType ${fieldType} -->
                                             <#if fieldType == 'LABEL'>
                                                 $("div.subform-cell-value span[name='" + prefix + "${field!}']").each(function() {
-                                                    $(this).html(item.${fieldsMapping[field]!});
-                                                    $(this).trigger("change");
+                                                    if(!$(this).html() || '${element.properties.dontOverwrite!}' != 'true') {
+                                                        $(this).html(item.${fieldsMapping[field]!});
+                                                        $(this).trigger("change");
+                                                    }
                                                 });
                                             <#elseif fieldType! == 'GRIDS'>
                                                 $("div.grid[name='" + prefix + "${field!}']").each(function() {
@@ -250,8 +252,10 @@
                                                 });
                                             <#else>
                                                 $selector.each(function() {
-                                                    $(this).val(item.${fieldsMapping[field]!});
-                                                    $(this).trigger("change");
+                                                    if(!$(this).val() || '${element.properties.dontOverwrite!}' != 'true') {
+                                                        $(this).val(item.${fieldsMapping[field]!});
+                                                        $(this).trigger("change");
+                                                    }
                                                 });
                                             </#if>
                                         }
