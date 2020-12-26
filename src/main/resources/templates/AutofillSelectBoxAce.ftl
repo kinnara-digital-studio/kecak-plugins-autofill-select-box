@@ -139,7 +139,7 @@
                         if(!(jsonData['FORM_ID'] && jsonData['FIELD_ID']))
                             return;
 
-                        jsonData.autofillRequestParameter = new Object();
+                        jsonData.requestParameter = new Object();
 
                         <#-- BETA -->
                         // set input fields as request parameter
@@ -150,7 +150,7 @@
                         $('input[name^="' + prefix + '"]').each(function() {
                             var name = $(this).attr('name');
                             if(name) {
-                                jsonData.autofillRequestParameter[name.replace(patternPrefix, '')] = $(this).val();
+                                jsonData.requestParameter[name.replace(patternPrefix, '')] = $(this).val();
                             }
                         });
 
