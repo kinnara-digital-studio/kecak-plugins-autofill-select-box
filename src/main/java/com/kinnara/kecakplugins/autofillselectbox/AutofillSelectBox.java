@@ -63,14 +63,15 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 			throws ServletException, IOException {
 
 		final ApplicationContext appContext = AppUtil.getApplicationContext();
-		final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
+//		final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
+		final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
 
 		try {
 			if ("GET".equals(request.getMethod())) {
 				// Get Options Binder Data
-				final String appId = request.getParameter("appId");
-				final String appVersion = request.getParameter("appVersion");
-				final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
+//				final String appId = request.getParameter("appId");
+//				final String appVersion = request.getParameter("appVersion");
+//				final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
 
 				// method for paging
 				final String formDefId = getRequiredParameter(request, "formDefId");
@@ -161,14 +162,15 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 				try {
 					JSONObject body = constructRequestBody(request);
 
-					final String appId = body.getString(PARAMETER_APP_ID);
-					final String appVersion = body.getString(PARAMETER_APP_VERSION);
-					final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
+//					final String appId = body.getString(PARAMETER_APP_ID);
+//					final String appVersion = body.getString(PARAMETER_APP_VERSION);
+//					final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
 					final String formDefId = getRequiredBodyPayload(body, BODY_FORM_ID);
 					final String sectionId = getRequiredBodyPayload(body, BODY_SECTION_ID);
 					final String fieldId = getRequiredBodyPayload(body, BODY_FIELD_ID);
+					final String id = getRequiredBodyPayload(body, PARAMETER_ID);
 
-					JSONObject requestParameter = body.getJSONObject("requestParameter");
+					JSONObject requestParameter = new JSONObject(getRequiredBodyPayload(body, "requestParameter"));
 
 					// build form
 					@Nonnull
@@ -185,7 +187,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 					FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(String.valueOf(autofillLoadBinder.get(FormUtil.PROPERTY_CLASS_NAME)));
 
 					boolean encryption = "true".equalsIgnoreCase(elementSelectBox.getPropertyString("encryption"));
-					String primaryKey = decrypt(body.getString(PARAMETER_ID), encryption);
+					String primaryKey = decrypt(id, encryption);
 
 					if (loadBinder != null) {
 						try {
@@ -196,8 +198,8 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 							LogUtil.error(getClassName(), e, "Error configuring load binder");
 						}
 
-						requestParameter.put(PARAMETER_APP_ID, appId);
-						requestParameter.put(PARAMETER_APP_VERSION, appVersion);
+						requestParameter.put(PARAMETER_APP_ID, appDefinition.getAppId());
+						requestParameter.put(PARAMETER_APP_VERSION, appDefinition.getVersion());
 
 						JSONObject data = loadFormData(form, primaryKey, requestParameter);
 
