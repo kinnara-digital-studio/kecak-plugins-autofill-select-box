@@ -57,6 +57,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 
 	private final static long PAGE_SIZE = 10;
 
+	@Override
 	public void webService(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
@@ -65,99 +66,10 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 
 		try {
 			if ("GET".equals(request.getMethod())) {
-				// Get Options Binder Data
-				// method for paging
-				final String formDefId = getRequiredParameter(request, "formDefId");
-				final String[] fieldIds = request.getParameterValues("fieldId");
-				final String search = request.getParameter("search");
-				final Pattern searchPattern = Pattern.compile(search == null ? "" : search, Pattern.CASE_INSENSITIVE);
-				final long page = request.getParameter("page") == null ? PAGE_SIZE : Long.parseLong(request.getParameter("page"));
-				final String grouping = request.getParameter("grouping");
-
-				final FormData formData = new FormData();
-				final Form form = generateForm(appDefinition, formDefId);
-
-				final JSONArray jsonResults = new JSONArray();
-				for (String fieldId : fieldIds) {
-					Element element = FormUtil.findElement(fieldId, form, formData);
-					if (element == null)
-						continue;
-
-					final boolean encryption = "true".equalsIgnoreCase(element.getPropertyString("encryption"));
-
-					FormRowSet optionsRowSet;
-					if (element.getOptionsBinder() == null) {
-						optionsRowSet = (FormRowSet) element.getProperty(FormUtil.PROPERTY_OPTIONS);
-					} else {
-						FormUtil.executeOptionBinders(element, formData);
-						optionsRowSet = formData.getOptionsBinderData(element, null);
-					}
-
-					int skip = (int) ((page - 1) * PAGE_SIZE);
-					int pageSize = (int) PAGE_SIZE;
-					for (int i = 0, size = optionsRowSet.size(); i < size && pageSize > 0; i++) {
-						FormRow formRow = optionsRowSet.get(i);
-						if (searchPattern.matcher(formRow.getProperty(FormUtil.PROPERTY_LABEL)).find() && (
-								grouping == null
-										|| grouping.isEmpty()
-										|| grouping.equalsIgnoreCase(formRow.getProperty(FormUtil.PROPERTY_GROUPING)))) {
-
-							if (skip > 0) {
-								skip--;
-							} else {
-								try {
-									JSONObject jsonResult = new JSONObject();
-									jsonResult.put("id", encrypt(formRow.getProperty(FormUtil.PROPERTY_VALUE), encryption));
-									jsonResult.put("text", formRow.getProperty(FormUtil.PROPERTY_LABEL));
-									jsonResults.put(jsonResult);
-									pageSize--;
-								} catch (JSONException ignored) {
-								}
-							}
-						}
-					}
-				}
-
-				// I wonder why these codes don't work; they got some NULL POINTER EXCEPTION
-				//        JSONArray jsonResults = new JSONArray((optionsRowSet).stream()
-				//                .filter(Objects::nonNull)
-				//                .filter(formRow -> searchPattern.matcher(formRow.getProperty(FormUtil.PROPERTY_LABEL)).find())
-				//                .filter(formRow -> grouping == null
-				//                        || formRow.getProperty(FormUtil.PROPERTY_GROUPING) == null
-				//                        || grouping.isEmpty()
-				//                        || formRow.getProperty(FormUtil.PROPERTY_GROUPING).isEmpty()
-				//                        || grouping.equalsIgnoreCase(formRow.getProperty(FormUtil.PROPERTY_GROUPING)))
-				//                .skip((page - 1) * PAGE_SIZE)
-				//                .limit(PAGE_SIZE)
-				//                .map(formRow -> {
-				//                    final Map<String, String> map = new HashMap<>();
-				//                    map.put("id", formRow.getProperty(FormUtil.PROPERTY_VALUE));
-				//                    map.put("text", formRow.getProperty(FormUtil.PROPERTY_LABEL));
-				//                    return map;
-				//                })
-				//                .collect(Collectors.toList()));
-
-				try {
-					JSONObject jsonPagination = new JSONObject();
-					jsonPagination.put("more", jsonResults.length() >= PAGE_SIZE);
-
-					JSONObject jsonData = new JSONObject();
-					jsonData.put("results", jsonResults);
-					jsonData.put("pagination", jsonPagination);
-
-					response.setContentType("application/json");
-					response.getWriter().write(jsonData.toString());
-				} catch (JSONException e) {
-					throw new RestApiException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
-				}
+				super.webService(request, response);
 			} else if ("POST".equals(request.getMethod())) {
-
 				try {
 					JSONObject body = constructRequestBody(request);
-
-//					final String appId = body.getString(PARAMETER_APP_ID);
-//					final String appVersion = body.getString(PARAMETER_APP_VERSION);
-//					final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
 					final String formDefId = getRequiredBodyPayload(body, BODY_FORM_ID);
 					final String sectionId = getRequiredBodyPayload(body, BODY_SECTION_ID);
 					final String fieldId = getRequiredBodyPayload(body, BODY_FIELD_ID);
