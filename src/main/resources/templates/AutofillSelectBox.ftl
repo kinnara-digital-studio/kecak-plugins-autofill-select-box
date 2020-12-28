@@ -195,7 +195,9 @@
                                             });
                                         <#else>
                                             $selector.each(function() {
-                                                $(this).val('');
+                                                if('${element.properties.dontOverwrite!}' != 'true') {
+                                                    $(this).val('');
+                                                }
                                             });
                                         </#if>
                                     }
@@ -229,7 +231,7 @@
                                             <!-- fieldType ${fieldType} -->
                                             <#if fieldType == 'LABEL'>
                                                 $("div.subform-cell-value span[name='" + prefix + "${field!}']").each(function() {
-                                                    if(!$(this).html() || '${element.properties.dontOverwrite!}' != 'true') {
+                                                    if(!$(this).html()) {
                                                         $(this).html(item.${fieldsMapping[field]!});
                                                         $(this).trigger("change");
                                                     }
@@ -253,7 +255,7 @@
                                                 });
                                             <#else>
                                                 $selector.each(function() {
-                                                    if(!$(this).val() || '${element.properties.dontOverwrite!}' != 'true') {
+                                                    if(!$(this).val()) {
                                                         $(this).val(item.${fieldsMapping[field]!});
                                                         $(this).trigger("change");
                                                     }

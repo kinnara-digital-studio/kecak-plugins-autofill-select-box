@@ -1,8 +1,6 @@
 package com.kinnara.kecakplugins.autofillselectbox;
 
-import com.kinnara.kecakplugins.autofillselectbox.commons.AutofillException;
 import com.kinnara.kecakplugins.autofillselectbox.commons.RestApiException;
-import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;
@@ -63,16 +61,11 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 			throws ServletException, IOException {
 
 		final ApplicationContext appContext = AppUtil.getApplicationContext();
-//		final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
 		final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
 
 		try {
 			if ("GET".equals(request.getMethod())) {
 				// Get Options Binder Data
-//				final String appId = request.getParameter("appId");
-//				final String appVersion = request.getParameter("appVersion");
-//				final AppDefinition appDefinition = appDefinitionDao.loadVersion(appId, Long.parseLong(appVersion));
-
 				// method for paging
 				final String formDefId = getRequiredParameter(request, "formDefId");
 				final String[] fieldIds = request.getParameterValues("fieldId");
@@ -631,13 +624,13 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 
 	@Override
 	public String renderAceTemplate(FormData formData, Map map) {
-		String template = "AutofillSelectBoxAce.ftl";
+		String template = "AutofillSelectBoxBootstrap.ftl";
 		return renderTemplate(formData,map,template);
 	}
 
 	@Override
 	public String renderAdminLteTemplate(FormData formData, Map map) {
-		String template = "AutofillSelectBoxAdminLte.ftl";
+		String template = "AutofillSelectBoxBootstrap.ftl";
 		return renderTemplate(formData,map,template);
 	}
 

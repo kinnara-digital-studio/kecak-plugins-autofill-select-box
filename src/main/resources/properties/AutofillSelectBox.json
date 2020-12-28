@@ -235,18 +235,6 @@
             "label": ""
           }
         ]
-      },
-      {
-        "name": "dontOverwrite",
-        "label": "Do not overwrite filled fields",
-        "type": "checkbox",
-        "value": "true",
-        "options": [
-          {
-            "value": "true",
-            "label": ""
-          }
-        ]
       }
     ]
   },
@@ -282,6 +270,18 @@
           {
             "key": "resultField",
             "label": "Result Data Field"
+          }
+        ]
+      },
+      {
+        "name": "dontOverwrite",
+        "label": "Do not overwrite filled fields",
+        "type": "checkbox",
+        "value": "false",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
           }
         ]
       },
