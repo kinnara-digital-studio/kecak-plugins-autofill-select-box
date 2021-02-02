@@ -558,11 +558,4 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 				.filter(s -> !s.isEmpty())
 				.orElse(defaultValue);
 	}
-
-	protected String getRequiredParameter(HttpServletRequest request, String key) throws RestApiException {
-		return Optional.of(key)
-				.map(request::getParameter)
-				.filter(s -> !s.isEmpty())
-				.orElseThrow(() -> new RestApiException(HttpServletResponse.SC_BAD_REQUEST, "Missing request parameter ["+key+"]"));
-	}
 }

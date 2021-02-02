@@ -98,6 +98,30 @@
                     </#if>
                 });
 
+                <#-- fetch preselected data -->
+                <#if element.properties.lazyLoading! == 'true' >
+                    let $selectBox = $('#${elementParamName!}${element.properties.elementUniqueKey!}');
+                    $.ajax({
+                        type: 'GET',
+                        url: '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service',
+                        data: {
+                            values : '${values?join(";")}'
+                        }
+                    }).then(function (data) {
+                        // create the option and append to Select2
+                        var option = new Option(data.id, data.text, true, true);
+                        $selectBox.append(option).trigger('change');
+
+                        // manually trigger the `select2:select` event
+                        $selectBox.trigger({
+                            type: 'select2:select',
+                            params: {
+                                data: data
+                            }
+                        });
+                    });
+                </#if>
+
                 var prefix = "${elementId}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
 
                 const TIMEOUT = 100;
