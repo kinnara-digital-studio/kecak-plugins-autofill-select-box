@@ -14,15 +14,17 @@
     </#if>
 
     <#if (element.properties.readonly! == 'true' && element.properties.readonlyLabel! == 'true') >
-        <div class="form-cell-value">
-            <#list options! as option>
-                <#if values?? && values?seq_contains(option.value!)>
-                    <label class="readonly_label">
-                        <span>${option.label!?html}</span>
-                        <input id="${elementParamName!}" name="${elementParamName!}" type="hidden" value="${option.value!?html}" />
-                    </label>
-                </#if>
-            </#list>
+        <div class="controls">
+            <div class="form-cell-value">
+                <#list options! as option>
+                    <#if values?? && values?seq_contains(option.value!)>
+                        <label class="readonly_label">
+                            <span>${option.label!?html}</span>
+                            <input id="${elementParamName!}" name="${elementParamName!}" type="hidden" value="${option.value!?html}" />
+                        </label>
+                    </#if>
+                </#list>
+            </div>
         </div>
         <div style="clear:both;"></div>
     <#else>
