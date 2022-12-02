@@ -246,10 +246,10 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 		final List<String> databaseEncryptedValues = new ArrayList<>();
 
 		@Nonnull
-		final List<FormRow> optionsMap = getOptionsMap(formData)
+		final List<Map> optionsMap = getOptionsMap(formData)
 				.stream()
 				.peek(r -> {
-					final String value = r.getProperty(FormUtil.PROPERTY_VALUE);
+					final String value = String.valueOf(r.get(FormUtil.PROPERTY_VALUE));
 					final String encrypted = encrypt(value);
 
 					r.put(FormUtil.PROPERTY_VALUE, encrypted);
@@ -265,15 +265,16 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 
 		Collection<Map<String, String>> valuesMap = databaseEncryptedValues.stream()
 				.filter(s -> !s.isEmpty())
-				.map(s -> {
+				.map(value -> {
 					Map<String, String> map = new HashMap<>();
-					map.put("value", s);
+					map.put("value", value);
 
-					final FormRow lookingFor = new FormRow();
-					lookingFor.put("value", s);
+					final Map lookingFor = Collections.singletonMap("value", value);
+					final int index = Collections.binarySearch(optionsMap, lookingFor, Comparator.comparing(m -> String.valueOf(m.get("value"))));
 
-					int index = Collections.binarySearch(optionsMap, lookingFor, Comparator.comparing(m -> m.getProperty("value")));
-					map.put("label", index >= 0 ? optionsMap.get(index).getProperty(FormUtil.PROPERTY_LABEL) : s);
+					final Map item = index >= 0 ? optionsMap.get(index) : lookingFor;
+
+					map.put("label", String.valueOf(item.get(FormUtil.PROPERTY_LABEL)));
 					return map;
 				})
 				.collect(Collectors.toList());
@@ -562,9 +563,28 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 	}
 
 	@Nonnull
-	protected FormRowSet getOptionsMap(FormData formData) {
-		FormRowSet optionMap = FormUtil.getElementPropertyOptionsMap(this, formData);
-		optionMap.setMultiRow(true);
+	protected Collection<Map> getOptionsMap(FormData formData) {
+		Collection<Map> optionMap = FormUtil.getElementPropertyOptionsMap(this, formData);
 		return optionMap;
+	}
+	protected Form generateForm(AppDefinition appDef, String formDefId) {
+		ApplicationContext appContext = AppUtil.getApplicationContext();
+		FormService formService = (FormService)appContext.getBean("formService");
+		FormDefinitionDao formDefinitionDao = (FormDefinitionDao)appContext.getBean("formDefinitionDao");
+		if (this.formCache.containsKey(formDefId)) {
+			return (Form)this.formCache.get(formDefId);
+		} else {
+			if (appDef != null && formDefId != null && !formDefId.isEmpty()) {
+				FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
+				if (formDef != null) {
+					String json = formDef.getJson();
+					Form form = (Form)formService.createElementFromJson(json);
+					this.formCache.put(formDefId, form);
+					return form;
+				}
+			}
+
+			return null;
+		}
 	}
 }
