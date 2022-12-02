@@ -28,8 +28,8 @@ public class Utilities {
     public static Form generateForm(AppDefinition appDef, String formDefId) {
         // check in cache
         if(formCache.containsKey(formDefId)) {
-            LogUtil.info(Utilities.class.getName(), "Retrieving Form from cache");
-            return formCache.get(formDefId);
+            LogUtil.info(Utilities.class.getName(), "Retrieving form [" + formDefId + "] from cache");
+//            return formCache.get(formDefId);
         }
 
         // proceed without cache

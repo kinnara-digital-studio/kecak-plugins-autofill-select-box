@@ -79,24 +79,24 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 
 					// build form
 					@Nonnull
-					Form form = Optional.ofNullable(appDefinition)
+					final Form form = Optional.ofNullable(appDefinition)
 							.map(a -> generateForm(a, formDefId))
 							.orElseThrow(() -> new RestApiException(HttpServletResponse.SC_BAD_REQUEST, "Error generating form [" + formDefId + "]"));
 
-					FormData formData = new FormData();
-					Element section = FormUtil.findElement(sectionId, form, formData, true);
-					Element elementSelectBox = FormUtil.findElement(fieldId, section, formData, true);
-					Map<String, Object> autofillLoadBinder = (Map<String, Object>) elementSelectBox.getProperty(PROPERTY_AUTOFILL_LOAD_BINDER);
+					final FormData formData = new FormData();
+					final Element section = FormUtil.findElement(sectionId, form, formData, true);
+					final Element elementSelectBox = FormUtil.findElement(fieldId, section, formData, true);
+					final Map<String, Object> autofillLoadBinder = (Map<String, Object>) elementSelectBox.getProperty(PROPERTY_AUTOFILL_LOAD_BINDER);
 
-					PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
-					FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(String.valueOf(autofillLoadBinder.get(FormUtil.PROPERTY_CLASS_NAME)));
+					final PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
+					final FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(String.valueOf(autofillLoadBinder.get(FormUtil.PROPERTY_CLASS_NAME)));
 
-					boolean encryption = "true".equalsIgnoreCase(elementSelectBox.getPropertyString("encryption"));
-					String primaryKey = decrypt(id, encryption);
+					final boolean encryption = "true".equalsIgnoreCase(elementSelectBox.getPropertyString("encryption"));
+					final String primaryKey = decrypt(id, encryption);
 
 					if (loadBinder != null) {
 						try {
-							Map<String, Object> properties = (Map<String, Object>) autofillLoadBinder.get(FormUtil.PROPERTY_PROPERTIES);
+							final Map<String, Object> properties = (Map<String, Object>) autofillLoadBinder.get(FormUtil.PROPERTY_PROPERTIES);
 							loadBinder.setProperties(properties);
 							form.setLoadBinder((FormLoadBinder) loadBinder);
 						} catch (Exception e) {
@@ -106,7 +106,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 						requestParameter.put(PARAMETER_APP_ID, appDefinition.getAppId());
 						requestParameter.put(PARAMETER_APP_VERSION, appDefinition.getVersion());
 
-						JSONObject data = loadFormData(form, primaryKey, requestParameter);
+						final JSONObject data = loadFormData(form, primaryKey, requestParameter);
 
 						response.setStatus(HttpServletResponse.SC_OK);
 						response.getWriter().write(data.toString());
@@ -148,8 +148,10 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 
 	@Override
 	public String getVersion() {
-		return getClass().getPackage().getImplementationVersion();
-	}
+		PluginManager pluginManager = (PluginManager) AppUtil.getApplicationContext().getBean("pluginManager");
+		ResourceBundle resourceBundle = pluginManager.getPluginMessageBundle(getClassName(), "/messages/BuildNumber");
+		String buildNumber = resourceBundle.getString("buildNumber");
+		return buildNumber;	}
 
 	@Override
 	public String getDescription() {
@@ -244,7 +246,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 		final List<String> databaseEncryptedValues = new ArrayList<>();
 
 		@Nonnull
-		final List<FormRow> optionsMap = getOptionMap(formData)
+		final List<FormRow> optionsMap = getOptionsMap(formData)
 				.stream()
 				.peek(r -> {
 					final String value = r.getProperty(FormUtil.PROPERTY_VALUE);

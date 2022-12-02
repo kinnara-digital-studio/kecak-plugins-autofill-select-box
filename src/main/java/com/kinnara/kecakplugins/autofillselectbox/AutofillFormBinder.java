@@ -1,20 +1,17 @@
 package com.kinnara.kecakplugins.autofillselectbox;
 
-import org.joget.apps.app.dao.AppDefinitionDao;
-import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
-import org.joget.apps.app.model.FormDefinition;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.form.model.*;
 import org.joget.apps.form.service.FormService;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
+import org.joget.plugin.base.PluginManager;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationContext;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.ResourceBundle;
 
 /**
  * 
@@ -28,15 +25,7 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 	
 	public FormRowSet load(Element element, String primaryKey, FormData formData) {
 		FormRowSet rowSet = new FormRowSet();
-
-		String appId = formData.getRequestParameter("appId");
-		String appVersion = formData.getRequestParameter("appVersion");
-
-		AppDefinitionDao appDefinitionDao = (AppDefinitionDao) AppUtil.getApplicationContext().getBean("appDefinitionDao");
-		AppDefinition appDefinition = appId == null ? AppUtil.getCurrentAppDefinition() : appDefinitionDao.findByVersion(null, appId, Long.getLong(appVersion), null, null, null, 0, 1)
-				.stream()
-				.findFirst()
-				.orElse(null);
+		AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
 
 		Form form = Utilities.generateForm(appDefinition, getPropertyString("formDefId"));
 		
@@ -65,11 +54,14 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 	}
 
 	public String getVersion() {
-		return getClass().getPackage().getImplementationVersion();
+		PluginManager pluginManager = (PluginManager) AppUtil.getApplicationContext().getBean("pluginManager");
+		ResourceBundle resourceBundle = pluginManager.getPluginMessageBundle(getClassName(), "/messages/BuildNumber");
+		String buildNumber = resourceBundle.getString("buildNumber");
+		return buildNumber;
 	}
 
 	public String getDescription() {
-		return "Kecak Plugins; Default Autofill Form Binder; Artifact ID : " + getClass().getPackage().getImplementationTitle();
+		return getClass().getPackage().getImplementationTitle();
 	}
 	
 	private FormRow loadFormData(Form form, FormData formData) {		

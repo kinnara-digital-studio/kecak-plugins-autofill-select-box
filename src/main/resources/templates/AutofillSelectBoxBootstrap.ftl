@@ -145,6 +145,7 @@
 
                             $selector.each(function() {
                                 $(this).attr('readonly', 'readonly');
+                                $(this).attr('disabled', 'disabled');
                             });
                         }
                     </#list>
