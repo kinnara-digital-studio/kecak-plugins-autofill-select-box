@@ -560,4 +560,11 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 				.filter(s -> !s.isEmpty())
 				.orElse(defaultValue);
 	}
+
+	@Nonnull
+	protected FormRowSet getOptionsMap(FormData formData) {
+		FormRowSet optionMap = FormUtil.getElementPropertyOptionsMap(this, formData);
+		optionMap.setMultiRow(true);
+		return optionMap;
+	}
 }
