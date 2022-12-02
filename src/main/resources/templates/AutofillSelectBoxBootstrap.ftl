@@ -107,12 +107,18 @@
                         type: 'GET',
                         url: '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service',
                         data: {
-                            values : '${values?join(";")}'
+                            values : '${values?join(";")}',
+                            formDefId : '${formDefId!}',
+                            fieldId : '${element.properties.id!}'
                         }
                     }).then(function (data) {
                         // create the option and append to Select2
-                        var option = new Option(data.id, data.text, true, true);
-                        $selectBox.append(option).trigger('change');
+                        var results = data.results;
+                        for(var i in results) {
+                            var result = results[i];
+                            var option = new Option(result.text, result.id, true, true);
+                            $selectBox.append(option).trigger('change');
+                        }
 
                         // manually trigger the `select2:select` event
                         $selectBox.trigger({
