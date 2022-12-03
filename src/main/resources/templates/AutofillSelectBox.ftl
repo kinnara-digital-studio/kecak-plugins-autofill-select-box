@@ -2,7 +2,7 @@
 	<link rel="stylesheet" href="${request.contextPath}/plugin/${className}/bower_components/select2/dist/css/select2.min.css" />
 
     <script type="text/javascript" src="${request.contextPath}/plugin/${className}/bower_components/select2/dist/js/select2.min.js"></script>
-    <#-- <script type="text/javascript" src="${request.contextPath}/plugin/${className}/js/jquery.autofillselectbox.js"></script> -->
+    <script type="text/javascript" src="${request.contextPath}/plugin/${className}/js/jquery.autofillselectbox.js"></script>
     <script type="text/javascript" src="${request.contextPath}/js/json/formUtil.js"></script>
 	
 	<#assign elementId = elementParamName + element.properties.elementUniqueKey>
@@ -26,7 +26,7 @@
         </div>
         <div style="clear:both;"></div>
     <#else>
-        <select class="js-select2" id="${elementId}" <#if element.properties.multiple! == 'true'>multiple</#if> name="${elementParamName!}" <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
+        <select class="js-select2" id="${elementId}" name="${elementParamName!}" <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
             <#if element.properties.lazyLoading! != 'true' >
                 <#list options! as option>
                     <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
@@ -66,215 +66,80 @@
     <#if element.properties.readonly! != 'true' >
         <script type="text/javascript">
             $(document).ready(function(){
-                $('#${elementId!}.js-select2').select2({
-                    //placeholder: '${element.properties.placeholder!}',
-                    width : '${width!}',
-                    theme : 'classic',
-                    language : {
-                       errorLoading: () => '${element.properties.messageErrorLoading!}',
-                       loadingMore: () => '${element.properties.messageLoadingMore!}',
-                       noResults: () => '${element.properties.messageNoResults!}',
-                       searching: () => '${element.properties.messageSearching!}'
-                    }
-
-                    <#if element.properties.lazyLoading! == 'true' >
-                        ,ajax: {
-                            url: '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service',
-                            delay : 500,
-                            dataType: 'json',
-                            data : function(params) {
-                                return {
-                                    search: params.term,
-                                    appId : '${appId!}',
-                                    appVersion : '${appVersion!}',
-                                    formDefId : '${formDefId!}',
-                                    fieldId : '${element.properties.id!}',
-                                    <#if element.properties.controlField! != '' >
-                                        grouping : FormUtil.getValue('${element.properties.controlField!}'),
-                                    </#if>
-                                    page : params.page || 1
-                                };
-                            }
-                        }
-                    </#if>
+                <#--
+                $('#${elementId!}.js-select2').autofillSelectBox({
+                    contextPath : '${request.contextPath}',
+                    appId : '${appId!}',
+                    appVersion : '${appVersion!}',
+                    form : '${formDefId!}',
+                    className : '${className}',
+                    messages : {
+                       errorLoading : '${element.properties.messageErrorLoading!}',
+                       loadingMore : '${element.properties.messageLoadingMore!}',
+                       noResults : '${element.properties.messageNoResults!}',
+                       searching : '${element.properties.messageSearching!}'
+                    },
+                    lazyLoading : ${(element.properties.lazyLoading! == 'true')?string('true', 'false')}
                 });
+                -->
 
-                var prefix = "${elementId}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
-
-                const TIMEOUT = 100;
-                $('#${elementId}').change(() => setTimeout(trigger_${elementId}, TIMEOUT));
-
-                <#if element.properties.triggerOnPageLoad! == 'true'>
-                    $('#${elementId}').change();
-                </#if>
-
-                <#if element.properties.targetFieldAsReadonly! == 'true'>
-                    <#list fieldsMapping?keys! as field>
-                        {
-                            let $selector = FormUtil.getField('${field!}');
-                            <#--
-                            $("[name='" + prefix + "${field!}']").each(function() {
-                                $(this).attr('readonly', 'readonly');
-                            });
-                            -->
-
-                            $selector.each(function() {
-                                $(this).attr('readonly', 'readonly');
-                                $(this).attr('disabled', 'disabled');
-                            });
-                        }
-                    </#list>
-                </#if>
-
-                function trigger_${elementId}() {
-                    <#if includeMetaData == false || requestBody?? >
-                        var primaryKey = $('#${elementId}').val();
-                        var url = "${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service";
-
-                        var jsonData = {
-                            appId : '${appId!}',
-                            appVersion : '${appVersion!}',
-                            ${keyField} : primaryKey,
-                            ...${requestBody!}
-                        };
-
-                        if(!(jsonData['FORM_ID'] && jsonData['FIELD_ID']))
-                            return;
-
-                        jsonData.requestParameter = new Object();
-
-                        <#-- BETA -->
-                        // set input fields as request parameter
-                        var prefix = '${element.properties.customParameterName!}'.replace(/${element.properties.id}$/, '');
-                        var patternPrefix = new RegExp('^' + prefix);
-
-                        $('img#${elementId!}_loading').show();
-                        $('input[name^="' + prefix + '"]').each(function() {
-                            var name = $(this).attr('name');
-                            if(name) {
-                                jsonData.requestParameter[name.replace(patternPrefix, '')] = $(this).val();
-                            }
-                        });
-
-
-                        $.ajax({
-                            url: url,
-                            type : 'POST',
-                            headers : { 'Content-Type' : 'application/json' },
-                            data : JSON.stringify(jsonData)
-                        })
-                        .done(function(data) {
-                            $('img#${elementId!}_loading').hide();
-
-                            <#-- clean up field if no lazy mapping -->
-                            <#if element.properties.lazyMapping! != 'true' >
-                                <#list fieldsMapping?keys! as field>
-                                    {
-                                        let $selector = FormUtil.getField('${field!}');
-
-                                        <#assign fieldType = fieldTypes[field!]!>
-                                        <#if fieldType! == 'RADIOS' >
-                                            $selector.each(function() {
-                                                $(this).prop('checked', false);
-                                            });
-                                        <#elseif fieldType! == 'CHECK_BOXES'>
-                                            $selector.each(function() {
-                                                $(this).prop('checked', false);
-                                            });
-                                        <#elseif fieldType! == 'GRIDS'>
-                                            $("div.grid[name='" + prefix + "${field!}']").each(function() {
-                                                <#-- remove previous grid row -->
-                                                $(this).find('tr.grid-row').each(function() {
-                                                    $(this).remove();
-                                                });
-                                            });
-                                        <#elseif fieldType! == 'SELECT_BOXES'>
-                                            $("select[name='" + prefix + "${field!}']").each(function() {
-                                                $(this).val([]);
-                                                $(this).trigger("chosen:updated"); <#-- if chosen is used -->
-                                                $(this).trigger("change");  <#-- if select2 is used -->
-                                            });
-                                        <#else>
-                                            $selector.each(function() {
-                                                if('${element.properties.dontOverwrite!}' != 'true') {
-                                                    $(this).val('');
-                                                }
-                                            });
-                                        </#if>
-                                    }
-                                </#list>
-                            </#if>
-
-                            if(data.length == 0) {
-                                return;
+                let $selectBox = $('#${elementId!}.js-select2')
+                        .select2({
+                            //placeholder: '${element.properties.placeholder!}',
+                            width : '${width!}',
+                            theme : 'classic',
+                            language : {
+                               errorLoading: () => '${element.properties.messageErrorLoading!}',
+                               loadingMore: () => '${element.properties.messageLoadingMore!}',
+                               noResults: () => '${element.properties.messageNoResults!}',
+                               searching: () => '${element.properties.messageSearching!}'
                             }
 
-                            let i = 0;
-                            let item = data;
-
-                            <#list fieldsMapping?keys! as field>
-                                if(item.${fieldsMapping[field]!}) {
-                                    let $selector = FormUtil.getField('${field!}');
-
-                                    if($selector.is(':checkbox, :radio')) {
-                                        $selector.each(function() {
-                                            var multivalue = item.${fieldsMapping[field]!}.split(/;/);
-                                            $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
-                                        });
-                                    } else if($selector.is('select')) {
-                                        $("select[name='" + prefix + "${field!}']").each(function() {
-                                            $(this).val(item.${fieldsMapping[field]!}.split(/;/)).trigger("change");
-                                            $(this).trigger("chosen:updated");
-                                        });
-                                    } else {
-                                        if(item.${fieldsMapping[field]!} || item.${fieldsMapping[field]!} == '') {
-                                            <#assign fieldType = fieldTypes[field!]!>
-                                            <!-- fieldType ${fieldType} -->
-                                            <#if fieldType == 'LABEL'>
-                                                $("div.subform-cell-value span[name='" + prefix + "${field!}']").each(function() {
-                                                    if(!$(this).html()) {
-                                                        $(this).html(item.${fieldsMapping[field]!});
-                                                        $(this).trigger("change");
-                                                    }
-                                                });
-                                            <#elseif fieldType! == 'GRIDS'>
-                                                $("div.grid[name='" + prefix + "${field!}']").each(function() {
-                                                    <#-- remove previous grid row -->
-                                                    $(this).find('tr.grid-row').each(function() {
-                                                        $(this).remove();
-                                                    });
-
-                                                    try {
-                                                        var functionAdd = window[$(this).prop('id') + '_add'];
-                                                        if(typeof functionAdd == 'function') {
-                                                            var gridData = JSON.parse(item.${fieldsMapping[field]!});
-                                                            for(var j in gridData) {
-                                                                functionAdd({result : JSON.stringify(gridData[j])});
-                                                            }
-                                                        }
-                                                    } catch (e) { }
-                                                });
-                                            <#else>
-                                                $selector.each(function() {
-                                                    if(!$(this).val()) {
-                                                        $(this).val(item.${fieldsMapping[field]!});
-                                                        $(this).trigger("change");
-                                                    }
-                                                });
+                            <#if element.properties.lazyLoading! == 'true' >
+                                ,ajax: {
+                                    url: '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service',
+                                    delay : 500,
+                                    dataType: 'json',
+                                    data : function(params) {
+                                        return {
+                                            search: params.term,
+                                            appId : '${appId!}',
+                                            appVersion : '${appVersion!}',
+                                            formDefId : '${formDefId!}',
+                                            fieldId : '${element.properties.id!}',
+                                            <#if element.properties.controlField! != '' >
+                                                grouping : FormUtil.getValue('${element.properties.controlField!}'),
                                             </#if>
-                                        }
+                                            page : params.page || 1
+                                        };
                                     }
                                 }
-                            </#list>
+                            </#if>
                         })
-                        .fail(function() {
-                            $('img#${elementId!}_loading').hide();
-                            <#list element.properties.autofillFields! as field>
-                                $("[name='" + prefix + "${field.formField!}']").val("");
-                            </#list>
-                        });
-                    </#if>
-                }
+
+                        <#if !includeMetaData>
+                            .autofillSelectBox({
+                                contextPath : '${request.contextPath}',
+                                appId : '${appId!}',
+                                appVersion : '${appVersion!}',
+                                elementId : '${element.properties.id!}',
+                                controlField : '${element.properties.controlField!}',
+                                targetFieldAsReadonly: ${(element.properties.targetFieldAsReadonly! == 'true')?string('true', 'false')},
+                                lazyMapping : ${(element.properties.lazyMapping! != 'true')?string('true', 'false')},
+                                requestBody : ${requestBody!},
+                                className : '${className}',
+                                assets : {
+                                    $loadingImage: $('img#${elementId!}_loading')
+                                },
+                                targets : ${fieldsMappingJson!}
+                            })
+                        </#if>
+                        ;
+
+                <#if !includeMetaData && element.properties.triggerOnPageLoad! == 'true'>
+                    $selectBox.change();
+                </#if>
+
                 <#if (element.properties.readonly! == 'true') >
                     $('#${elementId!} option:not(:selected)').attr('disabled', true);
                     $('#${elementId!}.js-select2').attr("disabled", true).trigger("change");
