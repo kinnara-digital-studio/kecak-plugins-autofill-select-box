@@ -136,7 +136,7 @@
         "name": "encryption",
         "label": "UI Value Encryption",
         "type": "checkbox",
-        "value": "true",
+        "value": "",
         "options": [
           {
             "value": "true",
