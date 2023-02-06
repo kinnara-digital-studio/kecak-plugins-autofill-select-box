@@ -27,6 +27,15 @@
         </div>
         <div style="clear:both;"></div>
     <#else>
+        <style>
+            .select2-container {
+                margin-bottom:18px !important;
+            }
+
+            .select2-search--dropdown .select2-search__field{
+                float:none !important;
+            }
+        </style>
         <select class="js-select2" <#if element.properties.readonly! != 'true'>id="${elementParamName!}${element.properties.elementUniqueKey!}"</#if> name="${elementParamName!}" <#if element.properties.size?? && element.properties.size != ''> style="width:${element.properties.size!}%"</#if> <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
             <#list options! as option>
                 <#if values?? && values?seq_contains(option.value!) || option.value == ''>
