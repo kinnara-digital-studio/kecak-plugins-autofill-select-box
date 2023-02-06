@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="${request.contextPath}/node_modules/select2/dist/css/select2.min.css">
     <script type="text/javascript" src="${request.contextPath}/js/select2.kecak.js"></script>
 
-    <#-- <script type="text/javascript" src="${request.contextPath}/plugin/${className}/js/jquery.autofillselectbox.js"></script> -->
+    <script type="text/javascript" src="${request.contextPath}/plugin/${className}/js/jquery.autofillselectbox.js"></script>
     <script type="text/javascript" src="${request.contextPath}/js/json/formUtil.js"></script>
 	
 	<#assign elementId = elementParamName + element.properties.elementUniqueKey>
@@ -61,8 +61,7 @@
     <#if element.properties.readonly! != 'true' >
         <script type="text/javascript">
             $(document).ready(function(){
-                let $autofillSelectbox = $('#${elementId!}.js-select2').kecakSelect2({
-                    //placeholder: '${element.properties.placeholder!}',
+                let $autofillSelectbox = $('#${elementId!}.js-select2').autofillSelectBox({
                     width : '100%',
                     language : {
                        errorLoading: () => '${element.properties.messageErrorLoading!}',
@@ -167,44 +166,24 @@
                                 pair['${formField!}'] = data.${resultDataField!};
                             </#list>
 
-                            if(!data && data.length == 0) {
+                            if(!data || data.length == 0) {
                                 return;
                             }
 
                             for(let fieldId in pair) {
                                 let value = pair[fieldId];
-                                autofill(fieldId, value);
-                            }
-
-                            function autofill(fieldId, value) {
-                                let $selector = FormUtil.getField(fieldId);
-
-                                if($selector.is(':checkbox, :radio')) {
-                                    $selector.each(function() {
-                                        let multivalue = value.split(/;/);
-                                        $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
-                                    });
-                                } else if($selector.is('select')) {
-                                    $selector.val(values.split(/;/));
-                                    $selector.trigger({
-                                         type: "change",
-                                         params: {
-                                             value : value
-                                         }
-                                     });
-                                } else {
-                                    $selector.each(function() {
-                                        $(this).val(value);
-                                        $(this).trigger("change");
-                                    });
+                                if(value) {
+                                    let $selector = FormUtil.getField(fieldId);
+                                    $autofillSelectbox.autofillField($selector, value);
                                 }
                             }
                         })
                         .fail(function() {
                             $('img#${elementId!}_loading').hide();
-                            <#list element.properties.autofillFields! as field>
-                                $("[name='" + prefix + "${field.formField!}']").val("");
-                            </#list>
+                            let $selector = FormUtil.getField(fieldId);
+                            if($selector) {
+                                $selector.val('');
+                            }
                         });
                     </#if>
                 }
