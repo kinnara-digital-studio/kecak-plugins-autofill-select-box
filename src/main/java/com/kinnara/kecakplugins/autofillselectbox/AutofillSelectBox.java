@@ -1,6 +1,7 @@
 package com.kinnara.kecakplugins.autofillselectbox;
 
-import com.kinnara.kecakplugins.autofillselectbox.commons.RestApiException;
+import com.kinnarastudio.commons.Try;
+import com.kinnarastudio.commons.jsonstream.JSONStream;
 import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;
@@ -19,6 +20,7 @@ import org.joget.plugin.base.PluginWebSupport;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.kecak.apps.exception.ApiException;
 import org.springframework.context.ApplicationContext;
 
 import javax.annotation.Nonnull;
@@ -29,7 +31,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,9 +41,7 @@ import java.util.stream.Stream;
  * Autofill other elements based on this element's value as ID
  * 
  */
-public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, AceFormElement, AdminLteFormElement{
-	private final WeakHashMap<String, Form> formCache = new WeakHashMap<>();
-
+public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
 	private Element controlElement;
 
 	private final static String PARAMETER_ID = "id";
@@ -61,38 +60,40 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 	public void webService(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
-		final ApplicationContext appContext = AppUtil.getApplicationContext();
-		final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
-
 		try {
 			if ("GET".equals(request.getMethod())) {
 				super.webService(request, response);
 			} else if ("POST".equals(request.getMethod())) {
+				final ApplicationContext appContext = AppUtil.getApplicationContext();
+				final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
+
 				try {
-					JSONObject body = constructRequestBody(request);
+					final JSONObject body = constructRequestBody(request);
 					final String formDefId = getRequiredBodyPayload(body, BODY_FORM_ID);
 					final String sectionId = getRequiredBodyPayload(body, BODY_SECTION_ID);
 					final String fieldId = getRequiredBodyPayload(body, BODY_FIELD_ID);
 					final String id = getRequiredBodyPayload(body, PARAMETER_ID);
 
-					JSONObject requestParameter = new JSONObject(getRequiredBodyPayload(body, "requestParameter"));
+					final JSONObject requestParameter = new JSONObject(getRequiredBodyPayload(body, "requestParameter"));
 
 					// build form
 					@Nonnull
 					final Form form = Optional.ofNullable(appDefinition)
 							.map(a -> generateForm(a, formDefId))
-							.orElseThrow(() -> new RestApiException(HttpServletResponse.SC_BAD_REQUEST, "Error generating form [" + formDefId + "]"));
+							.orElseThrow(() -> new ApiException(HttpServletResponse.SC_BAD_REQUEST, "Error generating form [" + formDefId + "]"));
 
 					final FormData formData = new FormData();
 					final Element section = FormUtil.findElement(sectionId, form, formData, true);
 					final Element elementSelectBox = FormUtil.findElement(fieldId, section, formData, true);
+					if(!(elementSelectBox instanceof AutofillSelectBox)) {
+						throw new ApiException(HttpServletResponse.SC_BAD_REQUEST, "Element ID [" + fieldId + "] is not found in form [" + formDefId + "]");
+					}
+
 					final Map<String, Object> autofillLoadBinder = (Map<String, Object>) elementSelectBox.getProperty(PROPERTY_AUTOFILL_LOAD_BINDER);
 
 					final PluginManager pluginManager = (PluginManager) appContext.getBean("pluginManager");
 					final FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(String.valueOf(autofillLoadBinder.get(FormUtil.PROPERTY_CLASS_NAME)));
-
-					final boolean encryption = "true".equalsIgnoreCase(elementSelectBox.getPropertyString("encryption"));
-					final String primaryKey = decrypt(id, encryption);
+					final String primaryKey = ((AutofillSelectBox)elementSelectBox).decrypt(id);
 
 					if (loadBinder != null) {
 						try {
@@ -111,16 +112,16 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 						response.setStatus(HttpServletResponse.SC_OK);
 						response.getWriter().write(data.toString());
 					} else {
-						throw new RestApiException(HttpServletResponse.SC_NOT_FOUND, "Load binder not found");
+						throw new ApiException(HttpServletResponse.SC_NOT_FOUND, "Load binder not found");
 					}
 
 				} catch (JSONException e) {
-					throw new RestApiException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
+					throw new ApiException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
 				}
 			} else {
-				throw new RestApiException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method [" + request.getMethod() + "] is not supported");
+				throw new ApiException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method [" + request.getMethod() + "] is not supported");
 			}
-		} catch (RestApiException e) {
+		} catch (ApiException e) {
 			response.sendError(e.getErrorCode(), e.getMessage());
 			LogUtil.error(getClassName(), e, e.getMessage());
 		}
@@ -143,7 +144,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 
 	@Override
 	public String getName() {
-		return getLabel() + getVersion();
+		return getLabel();
 	}
 
 	@Override
@@ -164,74 +165,12 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
     }
 
 	@Override
-	public FormData formatDataForValidation(FormData formData) {
-		String[] paramValues = FormUtil.getRequestParameterValues(this, formData);
-
-		if ((paramValues == null || paramValues.length == 0) && FormUtil.isFormSubmitted(this, formData)) {
-			String paramName = FormUtil.getElementParameterName(this);
-			formData.addRequestParameterValues(paramName, new String[]{""});
-		} else {
-			formData.getRequestParams()
-					.entrySet()
-					.forEach(e -> e.setValue(Arrays.stream(e.getValue()).map(this::decrypt).toArray(String[]::new)));
-		}
-
-		return formData;
-	}
-
-	@Override
-	public FormRowSet formatData(FormData formData) {
-		FormRowSet rowSet = null;
-
-		// get value
-		String id = getPropertyString(FormUtil.PROPERTY_ID);
-		if (id != null) {
-			String[] values = Arrays.stream(FormUtil.getElementPropertyValues(this, formData))
-					// descrypt before storing to database
-					.map(this::decrypt)
-					.toArray(String[]::new);
-			if (values.length > 0) {
-				// check for empty submission via parameter
-				String[] paramValues = FormUtil.getRequestParameterValues(this, formData);
-				if ((paramValues == null || paramValues.length == 0) && FormUtil.isFormSubmitted(this, formData)) {
-					values = new String[]{encrypt("")};
-				}
-
-				// formulate values
-				String delimitedValue = FormUtil.generateElementPropertyValues(values);
-
-				// set value into Properties and FormRowSet object
-				FormRow result = new FormRow();
-				result.setProperty(id, delimitedValue);
-				rowSet = new FormRowSet();
-				rowSet.add(result);
-			}
-
-			// remove duplicate based on label (because list is sorted by label by default)
-			if("true".equals(getProperty("removeDuplicates")) && rowSet != null) {
-				FormRowSet newResults = new FormRowSet();
-				String currentValue = null;
-				for(FormRow row : rowSet) {
-					String label = row.getProperty(FormUtil.PROPERTY_LABEL);
-					if(currentValue == null || !currentValue.equals(label)) {
-						currentValue = label;
-						newResults.add(row);
-					}
-				}
-
-				rowSet = newResults;
-			}
-		}
-
-		return rowSet;
-	}
-	@Override
 	public String renderTemplate(FormData formData, Map dataModel) {
 		String template = "AutofillSelectBox.ftl";
 		return renderTemplate(formData,dataModel,template);
 	}
 
-	public String renderTemplate(FormData formData, Map dataModel, String template) {
+	protected String renderTemplate(FormData formData, Map dataModel, String template) {
 		dataModel.replace("element", this);
         Form rootForm = FormUtil.findRootForm(this);
 
@@ -246,15 +185,15 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 		final List<String> databaseEncryptedValues = new ArrayList<>();
 
 		@Nonnull
-		final List<FormRow> optionsMap = getOptionsMap(formData)
+		final List<Map> optionsMap = getOptionMap(formData)
 				.stream()
 				.peek(r -> {
-					final String value = r.getProperty(FormUtil.PROPERTY_VALUE);
+					final String value = r.get(FormUtil.PROPERTY_VALUE).toString();
 					final String encrypted = encrypt(value);
 
 					r.put(FormUtil.PROPERTY_VALUE, encrypted);
 
-					if(databasePlainValues.stream().anyMatch(s -> s.equals(value))) {
+					if(databasePlainValues.stream().anyMatch(value::equals)) {
 						databaseEncryptedValues.add(encrypted);
 					}
 				})
@@ -263,32 +202,27 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 		dataModel.put("values", databaseEncryptedValues);
 		dataModel.put("options", optionsMap);
 
-		Collection<Map<String, String>> valuesMap = databaseEncryptedValues.stream()
-				.filter(s -> !s.isEmpty())
-				.map(s -> {
-					Map<String, String> map = new HashMap<>();
-					map.put("value", s);
-
-					final FormRow lookingFor = new FormRow();
-					lookingFor.put("value", s);
-
-					int index = Collections.binarySearch(optionsMap, lookingFor, Comparator.comparing(m -> m.getProperty("value")));
-					map.put("label", index >= 0 ? optionsMap.get(index).getProperty(FormUtil.PROPERTY_LABEL) : s);
-					return map;
-				})
-				.collect(Collectors.toList());
-		dataModel.put("optionsValues", valuesMap);
 
         dataModel.put("className", getClassName());
 		dataModel.put("width", getPropertyString("size") == null || getPropertyString("size").isEmpty() ? "resolve" : (getPropertyString("size").replaceAll("[^0-9]+]", "") + "%"));
         dataModel.put("keyField", PARAMETER_ID);
-        
+
+		final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
+		final String appId = appDefinition.getAppId();
+		final long appVersion = appDefinition.getVersion();
+		final String formDefId = Optional.ofNullable(rootForm).map(f -> f.getPropertyString(FormUtil.PROPERTY_ID)).orElse("");
+		final String fieldId = getPropertyString(FormUtil.PROPERTY_ID);
+
+		final String nonce = generateNonce(appId, String.valueOf(appVersion), formDefId, fieldId);
+        dataModel.put("nonce", nonce);
+
+		@Deprecated
         Map<String, String> fieldTypes = new HashMap<>();
         getFieldTypes(rootForm, fieldTypes);
         dataModel.put("fieldTypes", fieldTypes);
 
 		try {
-			JSONObject requestBody = new JSONObject();
+			final JSONObject requestBody = new JSONObject();
 			if (rootForm != null) {
 				requestBody.put(BODY_FORM_ID, rootForm.getPropertyString(FormUtil.PROPERTY_ID));
 			}
@@ -308,10 +242,9 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 			LogUtil.error(getClassName(), e, "Error generating form json");
 		}
         
-        Map<String, String> fieldsMapping = generateFieldsMapping(rootForm, "true".equals(getPropertyString("lazyMapping")), (Object[])getProperty("autofillFields"));
+        final Map<String, String> fieldsMapping = generateFieldsMapping(rootForm, "true".equals(getPropertyString("lazyMapping")), (Object[])getProperty("autofillFields"));
         dataModel.put("fieldsMapping", fieldsMapping);
 
-        AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
         dataModel.put(PARAMETER_APP_ID, appDefinition.getAppId());
         dataModel.put(PARAMETER_APP_VERSION, appDefinition.getVersion());
 
@@ -327,7 +260,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
         return html;
 	}
 	
-	private Map<String, String> generateFieldsMapping(Form rootForm, boolean lazyMapping, Object[] autofillFields) {
+	protected Map<String, String> generateFieldsMapping(Form rootForm, boolean lazyMapping, Object[] autofillFields) {
 		Map<String, String> fieldsMapping = new HashMap<>();
 		if(lazyMapping) {
 			final String selectBoxId = getPropertyString(FormUtil.PROPERTY_ID);
@@ -353,28 +286,9 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 		return fieldsMapping; 
 	}
 
-	protected void dynamicOptions(FormData formData) {
-		if (getControlElement(formData) != null) {
-			setProperty("controlFieldParamName", FormUtil.getElementParameterName(getControlElement(formData)));
-
-			FormUtil.setAjaxOptionsElementProperties(this, formData);
-		}
-	}
-
-	@Override
-	public Element getControlElement(FormData formData) {
-		if (controlElement == null) {
-			if (getPropertyString("controlField") != null && !getPropertyString("controlField").isEmpty()) {
-				Form form = FormUtil.findRootForm(this);
-				controlElement = FormUtil.findElement(getPropertyString("controlField"), form, formData);
-			}
-		}
-		return controlElement;
-	}
-
 	@Override
 	public String getFormBuilderTemplate() {
-		return "<label class='label'>" + getName() + "</label><select><option>Option</option></select>";
+		return "<label class='label'>" + getLabel() + "</label><select><option>Option</option></select>";
 	}
 
 	/**
@@ -383,7 +297,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 	 * @param element
 	 * @param condition
 	 */
-	private void iterateLazyFieldsMapping(Map<String, String> fieldsMapping, Element element, Predicate<Element> condition) {
+	private void iterateLazyFieldsMapping(final Map<String, String> fieldsMapping, final Element element, Predicate<Element> condition) {
 		if(element != null) {
 			for(Element child : element.getChildren()) {
 				if(condition.test(child)) {
@@ -395,8 +309,9 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 			}
 		}
 	}
-	
-	private void getFieldTypes(Element element, Map<String, String> types) {
+
+	@Deprecated
+	protected void getFieldTypes(Element element, Map<String, String> types) {
 		if(element != null) {
 			String id = element.getPropertyString(FormUtil.PROPERTY_ID);
 			
@@ -423,7 +338,7 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 		}
 	}
 	
-	private JSONObject getFormJson(String formDefId) throws JSONException {
+	protected JSONObject getFormJson(String formDefId) throws JSONException {
 		AppDefinition appDef = AppUtil.getCurrentAppDefinition();
 		ApplicationContext appContext = AppUtil.getApplicationContext();
 		if(appDef != null) {
@@ -435,35 +350,10 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 		return null;
 	}
 	
-	private JSONObject constructRequestBody(HttpServletRequest request) throws IOException, JSONException {
+	protected JSONObject constructRequestBody(HttpServletRequest request) throws IOException, JSONException {
 		try(BufferedReader bf = request.getReader()) {
 			return new JSONObject(bf.lines().collect(Collectors.joining()));
 		}
-	}
-	
-	private Map<String, Object> jsonToMap(JSONObject json) {
-		Map<String, Object> result = new HashMap<String, Object>();
-		Iterator<String> i = json.keys();
-		while(i.hasNext()) {
-			String key = i.next();
-			try {
-				String value = json.getString(key);
-				result.put(key, value);
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-		}
-		return result;
-	}
-	
-	private JSONArray formRowSetToJson(FormRowSet data) {
-		JSONArray result = new JSONArray();
-		if(data != null) {		
-			for(FormRow row : data) {
-				result.put(row);
-			}
-		}
-		return result;
 	}
 
 	/**
@@ -474,21 +364,17 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 	 * @param jsonRequestParameter
 	 * @return
 	 */
-	private JSONObject loadFormData(Form form, String primaryKey, JSONObject jsonRequestParameter) {
+	protected JSONObject loadFormData(Form form, String primaryKey, JSONObject jsonRequestParameter) {
 		ApplicationContext appContext = AppUtil.getApplicationContext();
 		FormService formService = (FormService) appContext.getBean("formService");
-		FormData formData = new FormData();
+		final FormData formData = new FormData();
 		formData.setPrimaryKeyValue(primaryKey);
 
-		Iterator<String> i = jsonRequestParameter.keys();
-		while (i.hasNext()) {
-			String key = i.next();
-			try {
-				formData.addRequestParameterValues(key, new String[] { jsonRequestParameter.getString(key) });
-			} catch (JSONException ignored) { }
-		}
+		JSONStream.of(jsonRequestParameter, Try.onBiFunction(JSONObject::getString))
+				.forEach(e -> formData.addRequestParameterValues(e.getKey(), new String[] {e.getValue()}));
 
-		formData = formService.executeFormLoadBinders(form, formData);
+		formService.executeFormLoadBinders(form, formData);
+
 		return Optional.ofNullable(formData.getLoadBinderData(form))
 				.map(Collection::stream)
 				.orElseGet(Stream::empty)
@@ -497,61 +383,10 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 				.orElseGet(JSONObject::new);
 	}
 
-	protected String encrypt(String rawContent) {
-		return encrypt(rawContent, "true".equalsIgnoreCase(getPropertyString("encryption")));
-	}
-
-	protected String encrypt(String rawContent, boolean encryption) {
-		if(encryption) {
-			String encrypted = SecurityUtil.encrypt(rawContent);
-			if(verifyEncryption(rawContent, encrypted)) {
-				return encrypted;
-			} else {
-				LogUtil.warn(getClassName(), "Failed to verify encrypted value, use raw content");
-				return rawContent;
-			}
-		}
-		return rawContent;
-	}
-
-	/**
-	 * For testing purpose
-	 * @param rawContent
-	 * @param encryptedValue
-	 * @return
-	 */
-	private boolean verifyEncryption(String rawContent, String encryptedValue) {
-		// try to decrypt
-		return (rawContent.equals(decrypt(encryptedValue)));
-	}
-
-	protected String decrypt(String protectedContent) {
-		return decrypt(protectedContent, "true".equalsIgnoreCase(getPropertyString("encryption")));
-	}
-
-	protected String decrypt(String protectedContent, boolean encryption) {
-		if(encryption) {
-			return SecurityUtil.decrypt(protectedContent);
-		}
-		return protectedContent;
-	}
-
-	@Override
-	public String renderAceTemplate(FormData formData, Map map) {
-		String template = "AutofillSelectBoxBootstrap.ftl";
-		return renderTemplate(formData,map,template);
-	}
-
-	@Override
-	public String renderAdminLteTemplate(FormData formData, Map map) {
-		String template = "AutofillSelectBoxBootstrap.ftl";
-		return renderTemplate(formData,map,template);
-	}
-
-	protected String getRequiredBodyPayload(JSONObject payload, String key) throws RestApiException {
+	protected String getRequiredBodyPayload(JSONObject payload, String key) throws ApiException {
 		return Optional.ofNullable(payload)
 				.map(j -> j.optString(key))
-				.orElseThrow(() -> new RestApiException(HttpServletResponse.SC_BAD_REQUEST, "Body payload [" + key + "] is not found"));
+				.orElseThrow(() -> new ApiException(HttpServletResponse.SC_BAD_REQUEST, "Body payload [" + key + "] is not found"));
 	}
 
 	protected String getOptionalBodyPayload(JSONObject payload, String key, String defaultValue) {
@@ -559,12 +394,5 @@ public class AutofillSelectBox extends  SelectBox implements PluginWebSupport, A
 				.map(j -> j.optString(key))
 				.filter(s -> !s.isEmpty())
 				.orElse(defaultValue);
-	}
-
-	@Nonnull
-	protected FormRowSet getOptionsMap(FormData formData) {
-		FormRowSet optionMap = FormUtil.getElementPropertyOptionsMap(this, formData);
-		optionMap.setMultiRow(true);
-		return optionMap;
 	}
 }

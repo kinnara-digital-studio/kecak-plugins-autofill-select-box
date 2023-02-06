@@ -58,12 +58,6 @@
         "type": "textfield"
       },
       {
-        "name": "multiple",
-        "label": "@@form.selectbox.multipleSelection@@",
-        "type": "hidden",
-        "value": "False"
-      },
-      {
         "name": "validator",
         "label": "@@form.selectbox.validator@@",
         "type": "elementselect",
@@ -73,19 +67,6 @@
       {
         "label": "@@form.selectbox.dependency@@",
         "type": "header"
-      },
-      {
-        "name": "removeDuplicates",
-        "label": "@@form.selectbox.removeDuplicates@@",
-        "description": "@@form.selectbox.removeDuplicates.description@@",
-        "type": "checkbox",
-        "value": "false",
-        "options": [
-          {
-            "value": "true",
-            "label": ""
-          }
-        ]
       },
       {
         "name": "controlField",
@@ -157,18 +138,7 @@
         "label": "@@form.selectbox.select2Options@@",
         "type": "header"
       },
-      {
-        "name": "lazyLoading",
-        "label": "@@form.selectbox.lazyLoading@@",
-        "type": "checkbox",
-        "value": "",
-        "options": [
-          {
-            "value": "true",
-            "label": ""
-          }
-        ]
-      },
+
       {
         "name": "placeholder",
         "label": "@@form.selectbox.placeholder@@",
@@ -228,7 +198,7 @@
         "name": "triggerOnPageLoad",
         "label": "Trigger Autofill On Page Load",
         "type": "checkbox",
-        "value": "true",
+        "value": "false",
         "options": [
           {
             "value": "true",
@@ -277,7 +247,7 @@
         "name": "dontOverwrite",
         "label": "Do not overwrite filled fields",
         "type": "checkbox",
-        "value": "false",
+        "value": "",
         "options": [
           {
             "value": "true",

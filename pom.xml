@@ -4,7 +4,7 @@
     <groupId>com.kinnara.kecakplugins</groupId>
     <artifactId>kecak-plugins-autofill-select-box</artifactId>
     <packaging>bundle</packaging>
-    <version>1.2.3</version>
+    <version>3.0.0</version>
     <name>kecak-plugins-autofill-select-box</name>
     <url>http://www.kecak.org</url>
     <scm>
@@ -55,25 +55,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <executable>bower</executable>
-                    <arguments>
-                        <argument>install</argument>
-                    </arguments>
-                    <workingDirectory>${pom.basedir}/src/main/resources/resources</workingDirectory>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -156,8 +137,14 @@
         <dependency>
             <groupId>org.joget</groupId>
             <artifactId>wflow-core</artifactId>
-            <version>5.0-SNAPSHOT</version>
+            <version>7.0-SNAPSHOT</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>javax.servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- Change plugin specific dependencies here -->
         <!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->
@@ -166,6 +153,11 @@
 		    <artifactId>servlet-api</artifactId>
 		    <version>2.5</version>
 		</dependency>
+        <dependency>
+            <groupId>com.kinnarastudio</groupId>
+            <artifactId>kinnara-commons</artifactId>
+            <version>3.0.0</version>
+        </dependency>
         <!-- End change plugin specific dependencies here -->
     </dependencies>
 </project>

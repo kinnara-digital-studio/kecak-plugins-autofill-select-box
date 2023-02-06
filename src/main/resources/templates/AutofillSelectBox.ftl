@@ -1,7 +1,8 @@
 <div class="form-cell" ${elementMetaData!}>
-	<link rel="stylesheet" href="${request.contextPath}/plugin/${className}/bower_components/select2/dist/css/select2.min.css" />
+	<script type="text/javascript" src="${request.contextPath}/node_modules/select2/dist/js/select2.full.min.js"></script>
+    <link rel="stylesheet" href="${request.contextPath}/node_modules/select2/dist/css/select2.min.css">
+    <script type="text/javascript" src="${request.contextPath}/js/select2.kecak.js"></script>
 
-    <script type="text/javascript" src="${request.contextPath}/plugin/${className}/bower_components/select2/dist/js/select2.min.js"></script>
     <#-- <script type="text/javascript" src="${request.contextPath}/plugin/${className}/js/jquery.autofillselectbox.js"></script> -->
     <script type="text/javascript" src="${request.contextPath}/js/json/formUtil.js"></script>
 	
@@ -26,18 +27,12 @@
         </div>
         <div style="clear:both;"></div>
     <#else>
-        <select class="js-select2" id="${elementId}" <#if element.properties.multiple! == 'true'>multiple</#if> name="${elementParamName!}" <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
-            <#if element.properties.lazyLoading! != 'true' >
-                <#list options! as option>
+        <select class="js-select2" <#if element.properties.readonly! != 'true'>id="${elementParamName!}${element.properties.elementUniqueKey!}"</#if> name="${elementParamName!}" <#if element.properties.size?? && element.properties.size != ''> style="width:${element.properties.size!}%"</#if> <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
+            <#list options! as option>
+                <#if values?? && values?seq_contains(option.value!) || option.value == ''>
                     <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
-                </#list>
-            <#else>
-                <#list options! as option>
-                    <#if values?? && values?seq_contains(option.value!) || option.value == ''>
-                        <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
-                    </#if>
-                </#list>
-            </#if>
+                </#if>
+            </#list>
         </select>
     </#if>
     <#if (element.properties.readonly! != 'true') >
@@ -66,40 +61,46 @@
     <#if element.properties.readonly! != 'true' >
         <script type="text/javascript">
             $(document).ready(function(){
-                $('#${elementId!}.js-select2').select2({
+                let $autofillSelectbox = $('#${elementId!}.js-select2').kecakSelect2({
                     //placeholder: '${element.properties.placeholder!}',
-                    width : '${width!}',
-                    theme : 'classic',
+                    width : '100%',
                     language : {
                        errorLoading: () => '${element.properties.messageErrorLoading!}',
                        loadingMore: () => '${element.properties.messageLoadingMore!}',
                        noResults: () => '${element.properties.messageNoResults!}',
                        searching: () => '${element.properties.messageSearching!}'
-                    }
-
-                    <#if element.properties.lazyLoading! == 'true' >
-                        ,ajax: {
-                            url: '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service',
-                            delay : 500,
-                            dataType: 'json',
-                            data : function(params) {
-                                return {
-                                    search: params.term,
-                                    appId : '${appId!}',
-                                    appVersion : '${appVersion!}',
-                                    formDefId : '${formDefId!}',
-                                    fieldId : '${element.properties.id!}',
-                                    <#if element.properties.controlField! != '' >
-                                        grouping : FormUtil.getValue('${element.properties.controlField!}'),
-                                    </#if>
-                                    page : params.page || 1
-                                };
-                            }
+                    },
+                    ajax: {
+                        url: '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service',
+                        delay : 500,
+                        dataType: 'json',
+                        data : function(params) {
+                            return {
+                                search: params.term,
+                                formDefId : '${formDefId!}',
+                                fieldId : '${element.properties.id!}',
+                                <#if element.properties.controlField! != '' >
+                                    grouping : FormUtil.getValue('${element.properties.controlField!}'),
+                                </#if>
+                                page : params.page || 1,
+                                nonce: '${nonce}'
+                            };
                         }
-                    </#if>
+                    }
                 });
 
-                var prefix = "${elementId}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
+                <#-- fetch preselected data -->
+                let values = '${values?join(";")}';
+                if(values) {
+                    $autofillSelectbox.trigger({
+                        type : 'change',
+                        params : {
+                            value : values
+                        }
+                    });
+                }
+
+                let prefix = "${elementId}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
 
                 const TIMEOUT = 100;
                 $('#${elementId}').change(() => setTimeout(trigger_${elementId}, TIMEOUT));
@@ -112,12 +113,6 @@
                     <#list fieldsMapping?keys! as field>
                         {
                             let $selector = FormUtil.getField('${field!}');
-                            <#--
-                            $("[name='" + prefix + "${field!}']").each(function() {
-                                $(this).attr('readonly', 'readonly');
-                            });
-                            -->
-
                             $selector.each(function() {
                                 $(this).attr('readonly', 'readonly');
                                 $(this).attr('disabled', 'disabled');
@@ -128,10 +123,10 @@
 
                 function trigger_${elementId}() {
                     <#if includeMetaData == false || requestBody?? >
-                        var primaryKey = $('#${elementId}').val();
-                        var url = "${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service";
+                        let primaryKey = $('#${elementId}').val();
+                        let url = '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service';
 
-                        var jsonData = {
+                        let jsonData = {
                             appId : '${appId!}',
                             appVersion : '${appVersion!}',
                             ${keyField} : primaryKey,
@@ -145,17 +140,17 @@
 
                         <#-- BETA -->
                         // set input fields as request parameter
-                        var prefix = '${element.properties.customParameterName!}'.replace(/${element.properties.id}$/, '');
-                        var patternPrefix = new RegExp('^' + prefix);
+                        let prefix = '${element.properties.customParameterName!}'.replace(/${element.properties.id}$/, '');
+                        let patternPrefix = new RegExp('^' + prefix);
 
                         $('img#${elementId!}_loading').show();
                         $('input[name^="' + prefix + '"]').each(function() {
-                            var name = $(this).attr('name');
+                            let name = $(this).attr('name');
+                            let value = $(this).val();
                             if(name) {
-                                jsonData.requestParameter[name.replace(patternPrefix, '')] = $(this).val();
+                                jsonData.requestParameter[name.replace(patternPrefix, '')] = value;
                             }
                         });
-
 
                         $.ajax({
                             url: url,
@@ -166,106 +161,44 @@
                         .done(function(data) {
                             $('img#${elementId!}_loading').hide();
 
-                            <#-- clean up field if no lazy mapping -->
-                            <#if element.properties.lazyMapping! != 'true' >
-                                <#list fieldsMapping?keys! as field>
-                                    {
-                                        let $selector = FormUtil.getField('${field!}');
+                            let pair = {}; // formField : resultData
+                            <#list fieldsMapping?keys! as formField>
+                                <#assign resultDataField = fieldsMapping[formField]>
+                                pair['${formField!}'] = data.${resultDataField!};
+                            </#list>
 
-                                        <#assign fieldType = fieldTypes[field!]!>
-                                        <#if fieldType! == 'RADIOS' >
-                                            $selector.each(function() {
-                                                $(this).prop('checked', false);
-                                            });
-                                        <#elseif fieldType! == 'CHECK_BOXES'>
-                                            $selector.each(function() {
-                                                $(this).prop('checked', false);
-                                            });
-                                        <#elseif fieldType! == 'GRIDS'>
-                                            $("div.grid[name='" + prefix + "${field!}']").each(function() {
-                                                <#-- remove previous grid row -->
-                                                $(this).find('tr.grid-row').each(function() {
-                                                    $(this).remove();
-                                                });
-                                            });
-                                        <#elseif fieldType! == 'SELECT_BOXES'>
-                                            $("select[name='" + prefix + "${field!}']").each(function() {
-                                                $(this).val([]);
-                                                $(this).trigger("chosen:updated"); <#-- if chosen is used -->
-                                                $(this).trigger("change");  <#-- if select2 is used -->
-                                            });
-                                        <#else>
-                                            $selector.each(function() {
-                                                if('${element.properties.dontOverwrite!}' != 'true') {
-                                                    $(this).val('');
-                                                }
-                                            });
-                                        </#if>
-                                    }
-                                </#list>
-                            </#if>
-
-                            if(data.length == 0) {
+                            if(!data && data.length == 0) {
                                 return;
                             }
 
-                            let i = 0;
-                            let item = data;
+                            for(let fieldId in pair) {
+                                let value = pair[fieldId];
+                                autofill(fieldId, value);
+                            }
 
-                            <#list fieldsMapping?keys! as field>
-                                if(item.${fieldsMapping[field]!}) {
-                                    let $selector = FormUtil.getField('${field!}');
+                            function autofill(fieldId, value) {
+                                let $selector = FormUtil.getField(fieldId);
 
-                                    if($selector.is(':checkbox, :radio')) {
-                                        $selector.each(function() {
-                                            var multivalue = item.${fieldsMapping[field]!}.split(/;/);
-                                            $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
-                                        });
-                                    } else if($selector.is('select')) {
-                                        $("select[name='" + prefix + "${field!}']").each(function() {
-                                            $(this).val(item.${fieldsMapping[field]!}.split(/;/)).trigger("change");
-                                            $(this).trigger("chosen:updated");
-                                        });
-                                    } else {
-                                        if(item.${fieldsMapping[field]!} || item.${fieldsMapping[field]!} == '') {
-                                            <#assign fieldType = fieldTypes[field!]!>
-                                            <!-- fieldType ${fieldType} -->
-                                            <#if fieldType == 'LABEL'>
-                                                $("div.subform-cell-value span[name='" + prefix + "${field!}']").each(function() {
-                                                    if(!$(this).html()) {
-                                                        $(this).html(item.${fieldsMapping[field]!});
-                                                        $(this).trigger("change");
-                                                    }
-                                                });
-                                            <#elseif fieldType! == 'GRIDS'>
-                                                $("div.grid[name='" + prefix + "${field!}']").each(function() {
-                                                    <#-- remove previous grid row -->
-                                                    $(this).find('tr.grid-row').each(function() {
-                                                        $(this).remove();
-                                                    });
-
-                                                    try {
-                                                        var functionAdd = window[$(this).prop('id') + '_add'];
-                                                        if(typeof functionAdd == 'function') {
-                                                            var gridData = JSON.parse(item.${fieldsMapping[field]!});
-                                                            for(var j in gridData) {
-                                                                functionAdd({result : JSON.stringify(gridData[j])});
-                                                            }
-                                                        }
-                                                    } catch (e) { }
-                                                });
-                                            <#else>
-                                                $selector.each(function() {
-                                                    if(!$(this).val()) {
-                                                        $(this).val(item.${fieldsMapping[field]!});
-                                                        $(this).trigger("change");
-                                                    }
-                                                });
-                                            </#if>
-                                        }
-                                    }
+                                if($selector.is(':checkbox, :radio')) {
+                                    $selector.each(function() {
+                                        let multivalue = value.split(/;/);
+                                        $(this).prop('checked', multivalue.indexOf($(this).val()) >= 0);
+                                    });
+                                } else if($selector.is('select')) {
+                                    $selector.val(values.split(/;/));
+                                    $selector.trigger({
+                                         type: "change",
+                                         params: {
+                                             value : value
+                                         }
+                                     });
+                                } else {
+                                    $selector.each(function() {
+                                        $(this).val(value);
+                                        $(this).trigger("change");
+                                    });
                                 }
-                            </#list>
+                            }
                         })
                         .fail(function() {
                             $('img#${elementId!}_loading').hide();
@@ -275,6 +208,7 @@
                         });
                     </#if>
                 }
+
                 <#if (element.properties.readonly! == 'true') >
                     $('#${elementId!} option:not(:selected)').attr('disabled', true);
                     $('#${elementId!}.js-select2').attr("disabled", true).trigger("change");

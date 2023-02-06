@@ -1,5 +1,6 @@
 package com.kinnara.kecakplugins.autofillselectbox;
 
+import com.kinnarastudio.commons.jsonstream.JSONCollectors;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.form.model.*;
@@ -10,8 +11,12 @@ import org.joget.plugin.base.PluginManager;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationContext;
 
+import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 
@@ -98,14 +103,10 @@ public class AutofillFormBinder extends FormBinder  implements FormLoadElementBi
 		}
 	}
 	
-	private JSONArray formRowSetToJson(FormRowSet data) {
-		if(data != null) {
-			JSONArray result = new JSONArray();
-			for(FormRow row : data) {
-				result.put(row);
-			}
-			return result;
-		}
-		return null;
+	private JSONArray formRowSetToJson(FormRowSet rowSet) {
+		return Optional.ofNullable(rowSet)
+				.map(Collection::stream)
+				.orElseGet(Stream::empty)
+				.collect(JSONCollectors.toJSONArray());
 	}
 }
