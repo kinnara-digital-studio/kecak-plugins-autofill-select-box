@@ -2,9 +2,7 @@ package com.kinnara.kecakplugins.autofillselectbox;
 
 import com.kinnarastudio.commons.Try;
 import com.kinnarastudio.commons.jsonstream.JSONStream;
-import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
-import org.joget.apps.app.model.FormDefinition;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.form.lib.CheckBox;
 import org.joget.apps.form.lib.Radio;
@@ -14,10 +12,8 @@ import org.joget.apps.form.model.*;
 import org.joget.apps.form.service.FormService;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
-import org.joget.commons.util.SecurityUtil;
 import org.joget.plugin.base.PluginManager;
 import org.joget.plugin.base.PluginWebSupport;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.kecak.apps.exception.ApiException;
@@ -42,8 +38,6 @@ import java.util.stream.Stream;
  * 
  */
 public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
-	private Element controlElement;
-
 	private final static String PARAMETER_ID = "id";
 	private final static String PARAMETER_APP_ID = "appId";
 	private final static String PARAMETER_APP_VERSION = "appVersion";
@@ -337,18 +331,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
 			}
 		}
 	}
-	
-	protected JSONObject getFormJson(String formDefId) throws JSONException {
-		AppDefinition appDef = AppUtil.getCurrentAppDefinition();
-		ApplicationContext appContext = AppUtil.getApplicationContext();
-		if(appDef != null) {
-			FormDefinitionDao formDefinitionDao = (FormDefinitionDao)appContext.getBean("formDefinitionDao");
-			FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
-			return new JSONObject(formDef.getJson());
-		}
-		
-		return null;
-	}
+
 	
 	protected JSONObject constructRequestBody(HttpServletRequest request) throws IOException, JSONException {
 		try(BufferedReader bf = request.getReader()) {
@@ -382,7 +365,6 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
 				.map(JSONObject::new)
 				.orElseGet(JSONObject::new);
 	}
-
 	protected String getRequiredBodyPayload(JSONObject payload, String key) throws ApiException {
 		return Optional.ofNullable(payload)
 				.map(j -> j.optString(key))
