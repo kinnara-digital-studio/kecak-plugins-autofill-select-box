@@ -19,6 +19,13 @@
         });
     };
 
+    $.fn.clearField = function(fieldId) {
+        let $selector = FormUtil.getField(fieldId);
+        if($selector) {
+            $selector.val('');
+        }
+    };
+
     $.fn.autofillField = function($target, value) {
         if($target.is(':checkbox, :radio')) {
             $target.each(function() {

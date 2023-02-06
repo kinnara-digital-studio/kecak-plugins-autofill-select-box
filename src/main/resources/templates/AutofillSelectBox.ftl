@@ -91,21 +91,16 @@
                 <#-- fetch preselected data -->
                 let values = '${values?join(";")}';
                 if(values) {
-                    $autofillSelectbox.trigger({
-                        type : 'change',
-                        params : {
-                            value : values
-                        }
-                    });
+                    $autofillSelectbox.triggerSelect(values);
                 }
 
                 let prefix = "${elementId}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
 
                 const TIMEOUT = 100;
-                $('#${elementId}').change(() => setTimeout(trigger_${elementId}, TIMEOUT));
+                $autofillSelectbox.change(() => setTimeout(trigger_${elementId}, TIMEOUT));
 
                 <#if element.properties.triggerOnPageLoad! == 'true'>
-                    $('#${elementId}').change();
+                    $autofillSelectbox.change();
                 </#if>
 
                 <#if element.properties.targetFieldAsReadonly! == 'true'>
@@ -163,7 +158,7 @@
                             let pair = {}; // formField : resultData
                             <#list fieldsMapping?keys! as formField>
                                 <#assign resultDataField = fieldsMapping[formField]>
-                                pair['${formField!}'] = data.${resultDataField!};
+                                pair.${formField!} = data.${resultDataField!};
                             </#list>
 
                             if(!data || data.length == 0) {
@@ -180,10 +175,10 @@
                         })
                         .fail(function() {
                             $('img#${elementId!}_loading').hide();
-                            let $selector = FormUtil.getField(fieldId);
-                            if($selector) {
-                                $selector.val('');
-                            }
+
+                            <#list fieldsMapping?keys! as formField>
+                                $autofillSelectbox.clearField('${formField!}');
+                            </#list>
                         });
                     </#if>
                 }
