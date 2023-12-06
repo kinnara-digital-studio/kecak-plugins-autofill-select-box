@@ -1,7 +1,8 @@
 <div class="form-cell" ${elementMetaData!}>
-	<link rel="stylesheet" href="${request.contextPath}/plugin/${className}/bower_components/select2/dist/css/select2.min.css" />
+	<script type="text/javascript" src="${request.contextPath}/node_modules/select2/dist/js/select2.full.min.js"></script>
+    <link rel="stylesheet" href="${request.contextPath}/node_modules/select2/dist/css/select2.min.css">
+    <script type="text/javascript" src="${request.contextPath}/js/select2.kecak.js"></script>
 
-    <script type="text/javascript" src="${request.contextPath}/plugin/${className}/bower_components/select2/dist/js/select2.min.js"></script>
     <script type="text/javascript" src="${request.contextPath}/plugin/${className}/js/jquery.autofillselectbox.js"></script>
     <script type="text/javascript" src="${request.contextPath}/js/json/formUtil.js"></script>
 	
@@ -26,18 +27,21 @@
         </div>
         <div style="clear:both;"></div>
     <#else>
-        <select class="js-select2" id="${elementId}" name="${elementParamName!}" <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
-            <#if element.properties.lazyLoading! != 'true' >
-                <#list options! as option>
+        <style>
+            .select2-container {
+                margin-bottom:18px !important;
+            }
+
+            .select2-search--dropdown .select2-search__field{
+                float:none !important;
+            }
+        </style>
+        <select class="js-select2" <#if element.properties.readonly! != 'true'>id="${elementParamName!}${element.properties.elementUniqueKey!}"</#if> name="${elementParamName!}" <#if element.properties.size?? && element.properties.size != ''> style="width:${element.properties.size!}%"</#if> <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
+            <#list options! as option>
+                <#if values?? && values?seq_contains(option.value!) || option.value == ''>
                     <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
-                </#list>
-            <#else>
-                <#list options! as option>
-                    <#if values?? && values?seq_contains(option.value!) || option.value == ''>
-                        <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
-                    </#if>
-                </#list>
-            </#if>
+                </#if>
+            </#list>
         </select>
     </#if>
     <#if (element.properties.readonly! != 'true') >
@@ -66,79 +70,127 @@
     <#if element.properties.readonly! != 'true' >
         <script type="text/javascript">
             $(document).ready(function(){
-                <#--
-                $('#${elementId!}.js-select2').autofillSelectBox({
-                    contextPath : '${request.contextPath}',
-                    appId : '${appId!}',
-                    appVersion : '${appVersion!}',
-                    form : '${formDefId!}',
-                    className : '${className}',
-                    messages : {
-                       errorLoading : '${element.properties.messageErrorLoading!}',
-                       loadingMore : '${element.properties.messageLoadingMore!}',
-                       noResults : '${element.properties.messageNoResults!}',
-                       searching : '${element.properties.messageSearching!}'
+                let $autofillSelectbox = $('#${elementId!}.js-select2').autofillSelectBox({
+                    width : '100%',
+                    language : {
+                       errorLoading: () => '${element.properties.messageErrorLoading!}',
+                       loadingMore: () => '${element.properties.messageLoadingMore!}',
+                       noResults: () => '${element.properties.messageNoResults!}',
+                       searching: () => '${element.properties.messageSearching!}'
                     },
-                    lazyLoading : ${(element.properties.lazyLoading! == 'true')?string('true', 'false')}
+                    ajax: {
+                        url: '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service',
+                        delay : 500,
+                        dataType: 'json',
+                        data : function(params) {
+                            return {
+                                search: params.term,
+                                formDefId : '${formDefId!}',
+                                fieldId : '${element.properties.id!}',
+                                <#if element.properties.controlField! != '' >
+                                    grouping : FormUtil.getValue('${element.properties.controlField!}'),
+                                </#if>
+                                page : params.page || 1,
+                                nonce: '${nonce}'
+                            };
+                        }
+                    }
                 });
-                -->
 
-                let $selectBox = $('#${elementId!}.js-select2')
-                        .select2({
-                            //placeholder: '${element.properties.placeholder!}',
-                            width : '${width!}',
-                            theme : 'classic',
-                            language : {
-                               errorLoading: () => '${element.properties.messageErrorLoading!}',
-                               loadingMore: () => '${element.properties.messageLoadingMore!}',
-                               noResults: () => '${element.properties.messageNoResults!}',
-                               searching: () => '${element.properties.messageSearching!}'
+                <#-- fetch preselected data -->
+                let values = '${values?join(";")}';
+                if(values) {
+                    $autofillSelectbox.triggerSelect(values);
+                }
+
+                let prefix = "${elementId}".replace(/${element.properties.id!}${element.properties.elementUniqueKey!}$/, "");
+
+                const TIMEOUT = 100;
+                $autofillSelectbox.change(() => setTimeout(trigger_${elementId}, TIMEOUT));
+
+                <#if element.properties.triggerOnPageLoad! == 'true'>
+                    $autofillSelectbox.change();
+                </#if>
+
+                <#if element.properties.targetFieldAsReadonly! == 'true'>
+                    <#list fieldsMapping?keys! as field>
+                        {
+                            let $selector = FormUtil.getField('${field!}');
+                            $selector.each(function() {
+                                $(this).attr('readonly', 'readonly');
+                                $(this).attr('disabled', 'disabled');
+                            });
+                        }
+                    </#list>
+                </#if>
+
+                function trigger_${elementId}() {
+                    <#if includeMetaData == false || requestBody?? >
+                        let primaryKey = $('#${elementId}').val();
+                        let url = '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service';
+
+                        let jsonData = {
+                            appId : '${appId!}',
+                            appVersion : '${appVersion!}',
+                            ${keyField} : primaryKey,
+                            ...${requestBody!}
+                        };
+
+                        if(!(jsonData['FORM_ID'] && jsonData['FIELD_ID']))
+                            return;
+
+                        jsonData.requestParameter = new Object();
+
+                        <#-- BETA -->
+                        // set input fields as request parameter
+                        let prefix = '${element.properties.customParameterName!}'.replace(/${element.properties.id}$/, '');
+                        let patternPrefix = new RegExp('^' + prefix);
+
+                        $('img#${elementId!}_loading').show();
+                        $('input[name^="' + prefix + '"]').each(function() {
+                            let name = $(this).attr('name');
+                            let value = $(this).val();
+                            if(name) {
+                                jsonData.requestParameter[name.replace(patternPrefix, '')] = value;
+                            }
+                        });
+
+                        $.ajax({
+                            url: url,
+                            type : 'POST',
+                            headers : { 'Content-Type' : 'application/json' },
+                            data : JSON.stringify(jsonData)
+                        })
+                        .done(function(data) {
+                            $('img#${elementId!}_loading').hide();
+
+                            let pair = {}; // formField : resultData
+                            <#list fieldsMapping?keys! as formField>
+                                <#assign resultDataField = fieldsMapping[formField]>
+                                pair.${formField!} = data.${resultDataField!};
+                            </#list>
+
+                            if(!data || data.length == 0) {
+                                return;
                             }
 
-                            <#if element.properties.lazyLoading! == 'true' >
-                                ,ajax: {
-                                    url: '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service',
-                                    delay : 500,
-                                    dataType: 'json',
-                                    data : function(params) {
-                                        return {
-                                            search: params.term,
-                                            appId : '${appId!}',
-                                            appVersion : '${appVersion!}',
-                                            formDefId : '${formDefId!}',
-                                            fieldId : '${element.properties.id!}',
-                                            <#if element.properties.controlField! != '' >
-                                                grouping : FormUtil.getValue('${element.properties.controlField!}'),
-                                            </#if>
-                                            page : params.page || 1
-                                        };
-                                    }
+                            for(let fieldId in pair) {
+                                let value = pair[fieldId];
+                                if(value) {
+                                    let $selector = FormUtil.getField(fieldId);
+                                    $autofillSelectbox.autofillField($selector, value);
                                 }
-                            </#if>
+                            }
                         })
+                        .fail(function() {
+                            $('img#${elementId!}_loading').hide();
 
-                        <#if !includeMetaData>
-                            .autofillSelectBox({
-                                contextPath : '${request.contextPath}',
-                                appId : '${appId!}',
-                                appVersion : '${appVersion!}',
-                                elementId : '${element.properties.id!}',
-                                controlField : '${element.properties.controlField!}',
-                                targetFieldAsReadonly: ${(element.properties.targetFieldAsReadonly! == 'true')?string('true', 'false')},
-                                lazyMapping : ${(element.properties.lazyMapping! != 'true')?string('true', 'false')},
-                                requestBody : ${requestBody!},
-                                className : '${className}',
-                                assets : {
-                                    $loadingImage: $('img#${elementId!}_loading')
-                                },
-                                targets : ${fieldsMappingJson!}
-                            })
-                        </#if>
-                        ;
-
-                <#if !includeMetaData && element.properties.triggerOnPageLoad! == 'true'>
-                    $selectBox.change();
-                </#if>
+                            <#list fieldsMapping?keys! as formField>
+                                $autofillSelectbox.clearField('${formField!}');
+                            </#list>
+                        });
+                    </#if>
+                }
 
                 <#if (element.properties.readonly! == 'true') >
                     $('#${elementId!} option:not(:selected)').attr('disabled', true);
