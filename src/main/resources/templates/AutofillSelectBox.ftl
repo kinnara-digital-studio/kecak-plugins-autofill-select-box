@@ -71,7 +71,7 @@
         <script type="text/javascript">
             $(document).ready(function(){
                 let $autofillSelectbox = $('#${elementId!}.js-select2').autofillSelectBox({
-                    width : '100%',
+                    width : '90%',
                     language : {
                        errorLoading: () => '${element.properties.messageErrorLoading!}',
                        loadingMore: () => '${element.properties.messageLoadingMore!}',
@@ -79,19 +79,25 @@
                        searching: () => '${element.properties.messageSearching!}'
                     },
                     ajax: {
-                        url: '${request.contextPath}/web/json/app/${appId!}/${appVersion!}/plugin/${className}/service',
+                        url: '${request.contextPath}/web/json/data/app/${appId!}/${appVersion!}/form/${formDefId!}/${element.properties.id!}/options',
                         delay : 500,
                         dataType: 'json',
                         data : function(params) {
                             return {
                                 search: params.term,
-                                formDefId : '${formDefId!}',
-                                fieldId : '${element.properties.id!}',
                                 <#if element.properties.controlField! != '' >
                                     grouping : FormUtil.getValue('${element.properties.controlField!}'),
                                 </#if>
-                                page : params.page || 1,
-                                nonce: '${nonce}'
+                                page : params.page || 1
+                            };
+                        },
+                        processResults: function(body, params) {
+                            let more = body.count >= 10;
+                            return {
+                                'results' : body.data.map(e => { return {'id' : e.value, 'text' : e.label}; }),
+                                'pagination' : {
+                                    'more': more
+                                }
                             };
                         }
                     }

@@ -120,7 +120,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
 
     @Override
     public String getLabel() {
-        return "Autofill SelectBox";
+        return "Autofill Select Box";
     }
 
     @Override
@@ -162,11 +162,18 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
         return renderTemplate(formData, dataModel, template);
     }
 
+    @Override
+    protected void dynamicOptions(FormData formData) {
+        FormUtil.setAjaxOptionsElementProperties(this, formData);
+    }
+
     protected String renderTemplate(FormData formData, Map dataModel, String template) {
         dataModel.replace("element", this);
         Form rootForm = FormUtil.findRootForm(this);
 
         dynamicOptions(formData);
+
+//        FormUtil.setAjaxOptionsElementProperties(this, formData);
 
         // set value
         @Nonnull final List<String> databasePlainValues = Arrays.stream(FormUtil.getElementPropertyValues(this, formData))
