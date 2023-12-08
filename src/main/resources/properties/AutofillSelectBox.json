@@ -215,8 +215,8 @@
         "name": "lazyMapping",
         "label": "Lazy Mapping",
         "description": "Auto map respective result fields",
-        "type": "checkbox",
-        "value": "true",
+        "type": "hidden",
+        "value": "false",
         "options": [
           {
             "value": "true",
