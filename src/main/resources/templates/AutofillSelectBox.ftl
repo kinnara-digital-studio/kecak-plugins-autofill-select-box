@@ -71,7 +71,7 @@
         <script type="text/javascript">
             $(document).ready(function(){
                 let $autofillSelectbox = $('#${elementId!}.js-select2').autofillSelectBox({
-                    width : '70%',
+                    width : '${element.properties.size}%',
                     language : {
                        errorLoading: () => '${element.properties.messageErrorLoading!}',
                        loadingMore: () => '${element.properties.messageLoadingMore!}',
