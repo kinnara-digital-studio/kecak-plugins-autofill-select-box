@@ -245,7 +245,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
         dataModel.put(PARAMETER_APP_ID, appDefinition.getAppId());
         dataModel.put(PARAMETER_APP_VERSION, appDefinition.getVersion());
 
-        dataModel.put("fieldType", getLabel().toUpperCase());
+        dataModel.put("fieldType", "Autofill".toUpperCase());
 
         final Form form = FormUtil.findRootForm(this);
         if (form != null)
