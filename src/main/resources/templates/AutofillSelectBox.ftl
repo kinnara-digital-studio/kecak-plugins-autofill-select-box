@@ -180,16 +180,10 @@
                                 pair.${formField!} = data.${resultDataField!};
                             </#list>
 
-                            if(!data || data.length == 0) {
-                                return;
-                            }
-
                             for(let fieldId in pair) {
                                 let value = pair[fieldId];
-                                if(value) {
-                                    let $selector = FormUtil.getField(fieldId);
-                                    $autofillSelectbox.autofillField($selector, value);
-                                }
+                                let $selector = FormUtil.getField(fieldId);
+                                $autofillSelectbox.autofillField($selector, value);
                             }
                         })
                         .fail(function() {
