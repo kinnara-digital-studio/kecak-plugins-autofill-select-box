@@ -243,7 +243,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport, Ac
 		final List<String> databaseEncryptedValues = new ArrayList<>();
 
 		@Nonnull
-		final List<Map> optionsMap = getOptionsMap(formData)
+		final List<Map> optionsMap = getOptionMap(formData)
 				.stream()
 				.peek(r -> {
 					final String value = String.valueOf(r.get(FormUtil.PROPERTY_VALUE));
@@ -563,11 +563,6 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport, Ac
 				.orElse(defaultValue);
 	}
 
-	@Nonnull
-	protected Collection<Map> getOptionsMap(FormData formData) {
-		Collection<Map> optionMap = FormUtil.getElementPropertyOptionsMap(this, formData);
-		return optionMap;
-	}
 	protected Form generateForm(AppDefinition appDef, String formDefId) {
 		ApplicationContext appContext = AppUtil.getApplicationContext();
 		FormService formService = (FormService)appContext.getBean("formService");
