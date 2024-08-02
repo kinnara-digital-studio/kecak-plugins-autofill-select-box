@@ -1,7 +1,7 @@
 <div class="form-cell" ${elementMetaData!}>
-	<link rel="stylesheet" href="${request.contextPath}/plugin/${className}/bower_components/select2/dist/css/select2.min.css" />
+	<link rel="stylesheet" href="${request.contextPath}/bower_components/select2/dist/css/select2.min.css" />
 
-    <script type="text/javascript" src="${request.contextPath}/plugin/${className}/bower_components/select2/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="${request.contextPath}/bower_components/select2/dist/js/select2.min.js"></script>
     <script type="text/javascript" src="${request.contextPath}/plugin/${className}/js/jquery.autofillselectbox.js"></script>
     <script type="text/javascript" src="${request.contextPath}/js/json/formUtil.js"></script>
 	
