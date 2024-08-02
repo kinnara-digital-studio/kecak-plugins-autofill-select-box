@@ -100,7 +100,7 @@
                                 }
                             </#if>
                         })
-                        .autofillSelectBox({
+                        $selectBox.autofillSelectBox({
                             contextPath : '${request.contextPath}',
                             appId : '${appId!}',
                             appVersion : '${appVersion!}',
@@ -132,7 +132,7 @@
                         for(var i in results) {
                             var result = results[i];
                             var option = new Option(result.text, result.id, true, true);
-                            $selectBox.append(option).trigger('change');
+                            //$selectBox.append(option).trigger('change');
                         }
 
                         // manually trigger the `select2:select` event
