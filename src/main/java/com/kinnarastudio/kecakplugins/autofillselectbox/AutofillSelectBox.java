@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.autofillselectbox;
+package com.kinnarastudio.kecakplugins.autofillselectbox;
 
 import com.kinnarastudio.commons.Try;
 import com.kinnarastudio.commons.jsonstream.JSONStream;

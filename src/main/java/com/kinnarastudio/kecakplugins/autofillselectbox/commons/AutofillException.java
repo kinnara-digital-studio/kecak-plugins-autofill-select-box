@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.autofillselectbox.commons;
+package com.kinnarastudio.kecakplugins.autofillselectbox.commons;
 
 public class AutofillException extends Exception {
     public AutofillException(Throwable cause) {

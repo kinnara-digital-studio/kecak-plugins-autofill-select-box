@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.autofillselectbox;
+package com.kinnarastudio.kecakplugins.autofillselectbox;
 
 import com.kinnarastudio.commons.jsonstream.JSONCollectors;
 import org.joget.apps.app.model.AppDefinition;
@@ -15,7 +15,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**

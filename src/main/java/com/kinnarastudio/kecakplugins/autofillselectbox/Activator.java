@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.autofillselectbox;
+package com.kinnarastudio.kecakplugins.autofillselectbox;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
