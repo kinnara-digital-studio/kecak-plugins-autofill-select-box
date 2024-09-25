@@ -380,4 +380,9 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
                 .filter(s -> !s.isEmpty())
                 .orElse(defaultValue);
     }
+
+    @Override
+    public int getFormBuilderPosition() {
+        return 100;
+    }
 }
