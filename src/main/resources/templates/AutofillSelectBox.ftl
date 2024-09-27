@@ -40,7 +40,7 @@
             </#if>
         </select>
         <#if (element.properties.readonly! != 'true') >
-            <img id="${elementParamName!}${element.properties.elementUniqueKey!}_loading" src="${request.contextPath}/plugin/${className}/images/spin.gif" height="24" width="24" style="vertical-align: middle; display: none;">
+            <img id="${elementParamName!}${element.properties.elementUniqueKey!}_loading" src="${request.contextPath}/plugin/${className}/images/spin.gif" height="24" width="24" style="margin :auto; top:0; position: absolute; display: none;">
         </#if>
     </#if>
 
