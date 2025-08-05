@@ -3,6 +3,7 @@ package com.kinnarastudio.kecakplugins.autofillselectbox;
 import com.kinnarastudio.commons.Try;
 import com.kinnarastudio.commons.jsonstream.JSONStream;
 import org.joget.apps.app.model.AppDefinition;
+import org.joget.apps.app.service.AppService;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.form.lib.CheckBox;
 import org.joget.apps.form.lib.Radio;
@@ -14,6 +15,8 @@ import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
 import org.joget.plugin.base.PluginManager;
 import org.joget.plugin.base.PluginWebSupport;
+import org.joget.workflow.model.WorkflowAssignment;
+import org.joget.workflow.model.service.WorkflowManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.kecak.apps.exception.ApiException;
@@ -203,7 +206,8 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
         dataModel.put("width", getPropertyString("size") == null || getPropertyString("size").isEmpty() ? "resolve" : (getPropertyString("size").replaceAll("[^0-9]+]", "") + "%"));
         dataModel.put("keyField", PARAMETER_ID);
 
-        final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
+        final AppDefinition appDefinition = getApplicationDefinition(formData);
+
         final String appId = appDefinition.getAppId();
         final long appVersion = appDefinition.getVersion();
         final String formDefId = Optional.ofNullable(rootForm).map(f -> f.getPropertyString(FormUtil.PROPERTY_ID)).orElse("");
@@ -384,5 +388,35 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
     @Override
     public int getFormBuilderPosition() {
         return 100;
+    }
+
+    protected Optional<WorkflowAssignment> optAssignment(@Nonnull FormData formData) {
+        ApplicationContext applicationContext = AppUtil.getApplicationContext();
+        WorkflowManager workflowManager = (WorkflowManager) applicationContext.getBean("workflowManager");
+
+        return Optional.of(formData)
+                // try load addignment from activity ID
+                .map(FormData::getActivityId)
+                .map(Try.onFunction(workflowManager::getAssignment));
+    }
+
+    protected AppDefinition getApplicationDefinition(@Nonnull FormData formData) {
+        return  optAssignment(formData)
+                .map(this::getApplicationDefinition)
+                .orElseGet(AppUtil::getCurrentAppDefinition);
+    }
+
+    protected AppDefinition getApplicationDefinition(@Nonnull WorkflowAssignment assignment) {
+        ApplicationContext applicationContext = AppUtil.getApplicationContext();
+        AppService appService = (AppService) applicationContext.getBean("appService");
+
+        final String activityId = assignment.getActivityId();
+        final String processId = assignment.getProcessId();
+
+        return Optional.of(activityId)
+                .map(appService::getAppDefinitionForWorkflowActivity)
+                .orElseGet(() -> Optional.of(processId)
+                        .map(appService::getAppDefinitionForWorkflowProcess)
+                        .orElse(null));
     }
 }
