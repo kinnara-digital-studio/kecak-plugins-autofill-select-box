@@ -312,9 +312,6 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport, Ac
 
         dataModel.put(PARAMETER_APP_ID, appDefinition.getAppId());
         dataModel.put(PARAMETER_APP_VERSION, appDefinition.getVersion());
-
-        LogUtil.info(getClassName(), "appVersion [" + appDefinition.getVersion() + "] [" + appDefinition.getPackageDefinition().getVersion() + "]");
-
         dataModel.put("fieldType", getLabel().toUpperCase());
 
         final Form form = FormUtil.findRootForm(this);
@@ -585,33 +582,25 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport, Ac
         }
     }
 
-    protected Optional<WorkflowAssignment> optAssignment(@Nonnull FormData formData) {
+    protected AppDefinition getApplicationDefinition(@Nonnull FormData formData) {
         ApplicationContext applicationContext = AppUtil.getApplicationContext();
         WorkflowManager workflowManager = (WorkflowManager) applicationContext.getBean("workflowManager");
-
-        return Optional.of(formData)
-                // try load addignment from activity ID
-                .map(FormData::getActivityId)
-                .map(Try.onFunction(workflowManager::getAssignment));
-    }
-
-    protected AppDefinition getApplicationDefinition(@Nonnull FormData formData) {
-        return  optAssignment(formData)
-                .map(this::getApplicationDefinition)
-                .orElseGet(AppUtil::getCurrentAppDefinition);
-    }
-
-    protected AppDefinition getApplicationDefinition(@Nonnull WorkflowAssignment assignment) {
-        ApplicationContext applicationContext = AppUtil.getApplicationContext();
         AppService appService = (AppService) applicationContext.getBean("appService");
 
-        final String activityId = assignment.getActivityId();
-        final String processId = assignment.getProcessId();
+        return  Optional.of(formData)
+                // try load addignment from activity ID
+                .map(FormData::getActivityId)
+                .map(Try.onFunction(workflowManager::getAssignment))
+                .map(assignment -> {
+                    final String activityId = assignment.getActivityId();
+                    AppDefinition appDefinition = appService.getAppDefinitionForWorkflowActivity(activityId);
+                    if(appDefinition != null) {
+                        return appDefinition;
+                    }
 
-        return Optional.of(activityId)
-                .map(appService::getAppDefinitionForWorkflowActivity)
-                .orElseGet(() -> Optional.of(processId)
-                        .map(appService::getAppDefinitionForWorkflowProcess)
-                        .orElse(null));
+                    final String processId = assignment.getProcessId();
+                    return appService.getAppDefinitionForWorkflowProcess(processId);
+                })
+                .orElseGet(AppUtil::getCurrentAppDefinition);
     }
 }
