@@ -1,4 +1,4 @@
-package com.kinnarastudio.kecakplugins.autofillselectbox;
+package com.kinnarastudio.kecakplugins.autofillselectbox.commons;
 
 import org.joget.apps.app.dao.DatalistDefinitionDao;
 import org.joget.apps.app.dao.FormDefinitionDao;

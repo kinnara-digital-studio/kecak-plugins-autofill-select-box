@@ -1,6 +1,7 @@
 package com.kinnarastudio.kecakplugins.autofillselectbox;
 
 import com.kinnarastudio.commons.jsonstream.JSONCollectors;
+import com.kinnarastudio.kecakplugins.autofillselectbox.commons.Utilities;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.form.model.*;
