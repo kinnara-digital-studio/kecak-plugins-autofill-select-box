@@ -134,7 +134,12 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport, Ac
 
     @Override
     public String getPropertyOptions() {
-        return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillSelectBox.json", new String[]{PROPERTY_AUTOFILL_LOAD_BINDER}, true, "message/form/SelectBox").replaceAll("\"", "'");
+        String[] args = new String[] {
+                PROPERTY_AUTOFILL_LOAD_BINDER,
+                FormLoadBinder.class.getName()
+        };
+
+        return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillSelectBox.json", args, true, "message/form/SelectBox").replaceAll("\"", "'");
     }
 
     @Override

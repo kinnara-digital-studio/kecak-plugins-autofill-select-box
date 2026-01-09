@@ -220,7 +220,7 @@
         "name": "%s",
         "label": "Autofill Load Binder",
         "type": "elementselect",
-        "options_ajax": "[CONTEXT_PATH]/web/property/json/getElements?classname=org.joget.apps.form.model.FormLoadElementBinder",
+        "options_ajax": "[CONTEXT_PATH]/web/property/json/getElements?classname=%s",
         "url": "[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions",
         "description": "Leave Result Data Field empty to ignore field mapping"
       },
