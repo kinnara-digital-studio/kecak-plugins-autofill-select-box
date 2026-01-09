@@ -89,26 +89,25 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
                     final FormBinder loadBinder = (FormBinder) pluginManager.getPlugin(String.valueOf(autofillLoadBinder.get(FormUtil.PROPERTY_CLASS_NAME)));
                     final String primaryKey = ((AutofillSelectBox) elementSelectBox).decrypt(id);
 
-                    if (loadBinder != null) {
-                        try {
-                            final Map<String, Object> properties = (Map<String, Object>) autofillLoadBinder.get(FormUtil.PROPERTY_PROPERTIES);
-                            loadBinder.setProperties(properties);
-                            form.setLoadBinder((FormLoadBinder) loadBinder);
-                        } catch (Exception e) {
-                            LogUtil.error(getClassName(), e, "Error configuring load binder");
-                        }
-
-                        requestParameter.put(PARAMETER_APP_ID, appDefinition.getAppId());
-                        requestParameter.put(PARAMETER_APP_VERSION, appDefinition.getVersion());
-
-                        final JSONObject data = loadFormData(form, primaryKey, requestParameter);
-
-                        response.setStatus(HttpServletResponse.SC_OK);
-                        response.getWriter().write(data.toString());
-                    } else {
+                    if (loadBinder == null) {
                         throw new ApiException(HttpServletResponse.SC_NOT_FOUND, "Load binder not found");
                     }
 
+                    try {
+                        final Map<String, Object> properties = (Map<String, Object>) autofillLoadBinder.get(FormUtil.PROPERTY_PROPERTIES);
+                        loadBinder.setProperties(properties);
+                        form.setLoadBinder((FormLoadBinder) loadBinder);
+                    } catch (Exception e) {
+                        LogUtil.error(getClassName(), e, "Error configuring load binder");
+                    }
+
+                    requestParameter.put(PARAMETER_APP_ID, appDefinition.getAppId());
+                    requestParameter.put(PARAMETER_APP_VERSION, appDefinition.getVersion());
+
+                    final JSONObject data = loadFormData(form, primaryKey, requestParameter);
+
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.getWriter().write(data.toString());
                 } catch (JSONException e) {
                     throw new ApiException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
                 }
@@ -133,7 +132,12 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
 
     @Override
     public String getPropertyOptions() {
-        return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillSelectBox.json", new String[]{PROPERTY_AUTOFILL_LOAD_BINDER}, true, "message/form/SelectBox").replaceAll("\"", "'");
+        String[] args = new String[]{
+                PROPERTY_AUTOFILL_LOAD_BINDER,
+                FormLoadBinder.class.getName()
+        };
+
+        return AppUtil.readPluginResource(getClass().getName(), "/properties/AutofillSelectBox.json", args, true, "message/form/SelectBox").replaceAll("\"", "'");
     }
 
     @Override
@@ -401,7 +405,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
     }
 
     protected AppDefinition getApplicationDefinition(@Nonnull FormData formData) {
-        return  optAssignment(formData)
+        return optAssignment(formData)
                 .map(this::getApplicationDefinition)
                 .orElseGet(AppUtil::getCurrentAppDefinition);
     }
