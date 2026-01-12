@@ -48,10 +48,13 @@
                 params.assets.$loadingImage.hide();
 
                 // clean up field if no lazy mapping
-                for(const formField in params.targets) {
+                for(let formField in params.targets) {
                     let $selectors = FormUtil.getField(formField);
-                    let resultField = params.targets[formField];
-                    let value = data[resultField];
+                    let targetField = params.targets[formField];
+                    let resultField = targetField.replace(/\[\d+\]/g, '');
+                    let resultIndex = parseInt(targetField.replace(/.+\[(?=\d)|\].*/g, ''));
+                    let resultValue = data[resultField];
+                    let value = isNaN(resultIndex) ? resultValue : resultValue.split(';')[resultIndex];
 
                     if(value || value == '') {
                         $selectors.each(function() {

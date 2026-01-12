@@ -227,7 +227,7 @@
       {
         "name": "autofillFields",
         "label": "Fields Mapping",
-        "description": "Leave Result Data Field empty if you want skip the mapping",
+        "description": "Leave Result Data Field empty if you want skip the mapping. Result fields support multivalue using array index [] e.g. val[0]",
         "type": "grid",
         "control_field": "lazyMapping",
         "control_value": "",

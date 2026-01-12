@@ -247,8 +247,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
             LogUtil.error(getClassName(), e, "Error generating form json");
         }
 
-        final Map<String, String> fieldsMapping = generateFieldsMapping(rootForm, "true".equals(getPropertyString("lazyMapping")), (Object[]) getProperty("autofillFields"));
-        dataModel.put("fieldsMapping", fieldsMapping);
+        final Map<String, String> fieldsMapping = generateFieldsMapping(rootForm, "true".equals(getPropertyString("lazyMapping")), getPropertyGrid("autofillFields"));
         dataModel.put("fieldsMappingJson", new JSONObject(fieldsMapping));
 
         dataModel.put(PARAMETER_APP_ID, appDefinition.getAppId());
@@ -266,7 +265,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
         return html;
     }
 
-    protected Map<String, String> generateFieldsMapping(Form rootForm, boolean lazyMapping, Object[] autofillFields) {
+    protected Map<String, String> generateFieldsMapping(Form rootForm, boolean lazyMapping, Map<String, String>[] autofillFields) {
         Map<String, String> fieldsMapping = new HashMap<>();
         if (lazyMapping) {
             final String selectBoxId = getPropertyString(FormUtil.PROPERTY_ID);
@@ -278,8 +277,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
         }
 
         if (autofillFields != null) {
-            for (Object o : autofillFields) {
-                Map<String, String> column = (Map<String, String>) o;
+            for (Map<String, String> column : autofillFields) {
                 String formField = column.get("formField");
                 String resultField = column.get("resultField");
                 if (!resultField.isEmpty())
