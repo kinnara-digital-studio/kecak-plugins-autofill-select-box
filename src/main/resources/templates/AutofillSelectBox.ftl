@@ -118,7 +118,7 @@
             });
 
             <#if element.properties.triggerOnPageLoad! == 'true'>
-                $selectBox.change();
+                setTimeout(() => $selectbox.change(), 1000);
             </#if>
         });
     </script>
