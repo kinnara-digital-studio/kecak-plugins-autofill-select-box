@@ -27,6 +27,9 @@
             }
         </style>
         <select class="js-select2" <#if element.properties.readonly! != 'true'>id="${elementParamName!}${element.properties.elementUniqueKey!}"</#if> name="${elementParamName!}" <#if element.properties.size?? && element.properties.size != ''> style="width:${element.properties.size!}%"</#if> <#if element.properties.multiple! == 'true'>multiple="multiple" data-role="none" data-native-menu="true"</#if> <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
+            <#if enableCrud?? && enableCrud == true && !(addEmptyOption?? && addEmptyOption)>
+                <option value="__add_data__">+ Add Data</option>
+            </#if>
             <#if element.properties.lazyLoading! != 'true' >
                 <#list options as option>
                     <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if> <#if element.properties.readonly! == 'true'>disabled</#if>>${option.label!?html}</option>
@@ -37,6 +40,9 @@
                         <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
                     </#if>
                 </#list>
+            </#if>
+            <#if enableCrud?? && enableCrud == true && (addEmptyOption?? && addEmptyOption)>
+                <option value="__add_data__">+ Add Data</option>
             </#if>
         </select>
         <#if (element.properties.readonly! != 'true') >
@@ -116,6 +122,31 @@
                 },
                 targets : ${fieldsMappingJson!}
             });
+
+            let $select = $selectbox;
+
+            let enableCrud = ${(enableCrud!false)?string('true','false')};
+            let addEmptyOption = ${(addEmptyOption!false)?string('true','false')};
+
+            if (enableCrud) {
+                $select.find("option[value='__add_data__']").remove();
+
+                if (addEmptyOption) {
+                    let $empty = $select.find("option[value='']").first();
+
+                    if ($empty.length) {
+                        $('<option value="__add_data__">+ Add Data</option>')
+                            .insertAfter($empty);
+                    } else {
+                        $select.prepend('<option value="__add_data__">+ Add Data</option>');
+                    }
+
+                } else {
+                    $select.prepend('<option value="__add_data__">+ Add Data</option>');
+                }
+
+                $select.trigger('change.select2');
+            }
 
             <#if element.properties.triggerOnPageLoad! == 'true'>
                 setTimeout(() => $selectbox.change(), 1000);

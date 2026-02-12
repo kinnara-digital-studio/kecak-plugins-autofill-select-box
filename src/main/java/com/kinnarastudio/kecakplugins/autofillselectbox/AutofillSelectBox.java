@@ -1,8 +1,24 @@
 package com.kinnarastudio.kecakplugins.autofillselectbox;
 
-import com.kinnarastudio.commons.Try;
-import com.kinnarastudio.commons.jsonstream.JSONStream;
-import com.kinnarastudio.kecakplugins.autofillselectbox.commons.Utilities;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.ResourceBundle;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.service.AppService;
 import org.joget.apps.app.service.AppUtil;
@@ -10,7 +26,14 @@ import org.joget.apps.form.lib.CheckBox;
 import org.joget.apps.form.lib.Radio;
 import org.joget.apps.form.lib.SelectBox;
 import org.joget.apps.form.lib.SubForm;
-import org.joget.apps.form.model.*;
+import org.joget.apps.form.model.Column;
+import org.joget.apps.form.model.Element;
+import org.joget.apps.form.model.Form;
+import org.joget.apps.form.model.FormBinder;
+import org.joget.apps.form.model.FormButton;
+import org.joget.apps.form.model.FormData;
+import org.joget.apps.form.model.FormLoadBinder;
+import org.joget.apps.form.model.Section;
 import org.joget.apps.form.service.FormService;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
@@ -23,16 +46,9 @@ import org.json.JSONObject;
 import org.kecak.apps.exception.ApiException;
 import org.springframework.context.ApplicationContext;
 
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.util.*;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.kinnarastudio.commons.Try;
+import com.kinnarastudio.commons.jsonstream.JSONStream;
+import com.kinnarastudio.kecakplugins.autofillselectbox.commons.Utilities;
 
 /**
  * @author aristo
@@ -243,6 +259,30 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
             }
 
             dataModel.put("requestBody", requestBody);
+
+            Map<String, Object> crudFormBinder = (Map<String, Object>) getProperty("crudFormBinder");
+
+            boolean enableCrud = crudFormBinder != null
+                    && crudFormBinder.get(FormUtil.PROPERTY_CLASS_NAME) != null
+                    && !crudFormBinder.get(FormUtil.PROPERTY_CLASS_NAME).toString().isEmpty();
+
+            LogUtil.info(getClassName(), "Enable CRUD: " + enableCrud);
+            
+            dataModel.put("enableCrud", enableCrud);
+            dataModel.put("crudFormBinder", crudFormBinder);
+
+            boolean addEmptyOption = false;
+
+            Map optionsBinder = (Map) getProperty("optionsBinder");
+            if (optionsBinder != null) {
+                Map props = (Map) optionsBinder.get("properties");
+                if (props != null) {
+                    String val = (String) props.get("addEmptyOption");
+                    addEmptyOption = "true".equalsIgnoreCase(val);
+                }
+            }
+
+            dataModel.put("addEmptyOption", addEmptyOption);
         } catch (Exception e) {
             LogUtil.error(getClassName(), e, "Error generating form json");
         }
