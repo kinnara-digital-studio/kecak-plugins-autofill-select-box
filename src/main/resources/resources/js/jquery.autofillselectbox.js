@@ -27,6 +27,11 @@
             let $element = $(this);
 
             let primaryKey = $element.val();
+
+            if (!primaryKey || primaryKey === '__add_data__') {
+                return;
+            }
+
             let url = params.contextPath + '/web/json/app/' + params.appId + '/' + params.appVersion + '/plugin/' + params.className + '/service';
 
             let jsonData = {

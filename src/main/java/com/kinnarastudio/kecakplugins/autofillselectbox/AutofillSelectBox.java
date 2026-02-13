@@ -19,7 +19,10 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
+import org.joget.apps.app.model.FormDefinition;
 import org.joget.apps.app.service.AppService;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.form.lib.CheckBox;
@@ -37,6 +40,7 @@ import org.joget.apps.form.model.Section;
 import org.joget.apps.form.service.FormService;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
+import org.joget.commons.util.SecurityUtil;
 import org.joget.plugin.base.PluginManager;
 import org.joget.plugin.base.PluginWebSupport;
 import org.joget.workflow.model.WorkflowAssignment;
@@ -271,6 +275,29 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
             dataModel.put("enableCrud", enableCrud);
             dataModel.put("crudFormBinder", crudFormBinder);
 
+            if (enableCrud) {
+                try {
+                    String crudFormId = (String) crudFormBinder.get(FormUtil.PROPERTY_CLASS_NAME);
+                    Form crudForm = generateSelectedCrudForm(appDefinition, crudFormId);
+                    if (crudForm != null) {
+                        FormService formService = (FormService) AppUtil.getApplicationContext().getBean("formService");
+                        String crudFormJson = formService.generateElementJson(crudForm);
+
+                        final String crudFormNonce = SecurityUtil.generateNonce(new String[]{"EmbedForm", appId, String.valueOf(appVersion), crudFormJson}, 1);
+                        
+                        // final String crudFormNonce = generateNonce(appId, String.valueOf(appVersion), String.valueOf(crudFormBinder.get(FormUtil.PROPERTY_CLASS_NAME)), null);
+
+                        LogUtil.info(getClassName(), "CRUD Form JSON: " + crudFormJson);
+                        LogUtil.info(getClassName(), "CRUD Form Nonce: " + crudFormNonce);
+
+                        dataModel.put("crudFormJson", StringEscapeUtils.escapeHtml4(crudFormJson));
+                        dataModel.put("crudFormNonce", crudFormNonce);
+                    }
+                } catch (Exception e) {
+                    LogUtil.error(getClassName(), e, "Error generating CRUD Form JSON");
+                }
+            }
+
             boolean addEmptyOption = false;
 
             Map optionsBinder = (Map) getProperty("optionsBinder");
@@ -461,5 +488,16 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
                 .orElseGet(() -> Optional.of(processId)
                         .map(appService::getAppDefinitionForWorkflowProcess)
                         .orElse(null));
+    }
+
+    protected Form generateSelectedCrudForm(AppDefinition appDef, String formDefId) {
+        if (formDefId == null || formDefId.isEmpty()) return null;
+        FormDefinitionDao formDefinitionDao = (FormDefinitionDao) AppUtil.getApplicationContext().getBean("formDefinitionDao");
+        FormService formService = (FormService) AppUtil.getApplicationContext().getBean("formService");
+        FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
+        if (formDef != null) {
+            return (Form) formService.createElementFromJson(formDef.getJson());
+        }
+        return null;
     }
 }

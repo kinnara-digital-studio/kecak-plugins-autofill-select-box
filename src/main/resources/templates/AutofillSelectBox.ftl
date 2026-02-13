@@ -153,4 +153,57 @@
             </#if>
         });
     </script>
+
+    <#if enableCrud?? && enableCrud == true>
+        <input type="hidden" id="${elementParamName!}_crudFormJson" value="${crudFormJson!?html}" disabled />
+        <input type="hidden" id="${elementParamName!}_crudFormNonce" value="${crudFormNonce!?html}" disabled />
+
+        <script type="text/javascript">
+            function ${elementParamName!}_addDataCallback(args) {
+                let result = typeof args.result === 'string' ? JSON.parse(args.result) : args.result;
+                let newId = result.id || result.ID;
+                
+                let newLabel = newId; 
+
+                let $select = $('select#${elementParamName!}${element.properties.elementUniqueKey!}.js-select2');
+                let newOption = new Option(newLabel, newId, true, true);
+                
+                $select.append(newOption).trigger('change');
+                JPopup.hide("formPopup_${elementParamName!}");
+            }
+
+            $(document).ready(function() {
+                let frameId = "formPopup_${elementParamName!}";
+                let $select = $('select#${elementParamName!}${element.properties.elementUniqueKey!}.js-select2');
+
+                if (window.JPopup) {
+                    JPopup.create(frameId, "Add Data", "80%", "80%");
+                }
+
+                $select.on('change', function (e) {
+                    if ($(this).val() === '__add_data__') {
+                        $(this).val(null).trigger('change.select2');
+                        
+                        let url = "${request.contextPath}/web/app/${appId!}/${appVersion!}/form/embed?_submitButtonLabel=Submit";
+                        
+                        let json = $("#${elementParamName!}_crudFormJson").val();
+                        let nonce = $("#${elementParamName!}_crudFormNonce").val();
+                        
+                        let params = {
+                            _json: json,
+                            _callback: "${elementParamName!}_addDataCallback",
+                            _nonce: nonce,
+                            _setting: "{}"
+                        };
+                        
+                        if (window.JPopup) {
+                            JPopup.show(frameId, url, params, "", "80%", "80%");
+                        } else {
+                            console.error("JPopup script is not loaded in this environment.");
+                        }
+                    }
+                });
+            });
+        </script>
+    </#if>
 </div>
