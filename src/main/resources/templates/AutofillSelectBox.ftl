@@ -155,21 +155,41 @@
     </script>
 
     <#if enableCrud?? && enableCrud == true>
-        <input type="hidden" id="${elementParamName!}_crudFormJson" value="${crudFormJson!?html}" disabled />
-        <input type="hidden" id="${elementParamName!}_crudFormNonce" value="${crudFormNonce!?html}" disabled />
-
         <script type="text/javascript">
             function ${elementParamName!}_addDataCallback(args) {
                 let result = typeof args.result === 'string' ? JSON.parse(args.result) : args.result;
                 let newId = result.id || result.ID;
                 
-                let newLabel = newId; 
+                let labelColumn = "${labelColumn!}";
+
+                let newLabel = (labelColumn && result[labelColumn]) ? result[labelColumn] : newId;
 
                 let $select = $('select#${elementParamName!}${element.properties.elementUniqueKey!}.js-select2');
-                let newOption = new Option(newLabel, newId, true, true);
                 
-                $select.append(newOption).trigger('change');
-                JPopup.hide("formPopup_${elementParamName!}");
+                // 1. Adding new option to select
+                let newOption = new Option(newLabel, newId, true, true);
+                $select.append(newOption);
+                
+                // 2. Get all option expect for add data and empty option
+                let $options = $select.find('option').filter(function() {
+                    return $(this).val() !== '__add_data__' && $(this).val() !== '';
+                });
+                
+                // 3. Sort by alph
+                $options.sort(function(a, b) {
+                    return a.text.localeCompare(b.text);
+                });
+                
+                // 4. Insert sorted option to select
+                $select.append($options);
+                
+                // 5. Trigger select to change
+                $select.trigger('change');
+                
+                // 6. Hide form pop up
+                if (window.JPopup) {
+                    JPopup.hide("formPopup_${elementParamName!}");
+                }
             }
 
             $(document).ready(function() {
@@ -186,13 +206,16 @@
                         
                         let url = "${request.contextPath}/web/app/${appId!}/${appVersion!}/form/embed?_submitButtonLabel=Submit";
                         
-                        let json = $("#${elementParamName!}_crudFormJson").val();
-                        let nonce = $("#${elementParamName!}_crudFormNonce").val();
-                        
+                        if (typeof UI !== 'undefined' && typeof UI.userviewThemeParams === 'function') {
+                            url += UI.userviewThemeParams();
+                        } else if (window.ConnectionManager && window.ConnectionManager.tokenName) {
+                            url += "&" + window.ConnectionManager.tokenName + "=" + window.ConnectionManager.tokenValue;
+                        }
+
                         let params = {
-                            _json: json,
+                            _json: "${crudFormJson!?js_string}",
                             _callback: "${elementParamName!}_addDataCallback",
-                            _nonce: nonce,
+                            _nonce: "${crudFormNonce!?js_string}",
                             _setting: "{}"
                         };
                         

@@ -19,7 +19,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.model.FormDefinition;
@@ -290,7 +289,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
                         LogUtil.info(getClassName(), "CRUD Form JSON: " + crudFormJson);
                         LogUtil.info(getClassName(), "CRUD Form Nonce: " + crudFormNonce);
 
-                        dataModel.put("crudFormJson", StringEscapeUtils.escapeHtml4(crudFormJson));
+                        dataModel.put("crudFormJson", crudFormJson); 
                         dataModel.put("crudFormNonce", crudFormNonce);
                     }
                 } catch (Exception e) {
@@ -299,6 +298,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
             }
 
             boolean addEmptyOption = false;
+            String labelColumn = "";
 
             Map optionsBinder = (Map) getProperty("optionsBinder");
             if (optionsBinder != null) {
@@ -307,9 +307,14 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
                     String val = (String) props.get("addEmptyOption");
                     addEmptyOption = "true".equalsIgnoreCase(val);
                 }
+
+                if (props.get("labelColumn") != null) {
+                    labelColumn = props.get("labelColumn").toString();
+                }
             }
 
             dataModel.put("addEmptyOption", addEmptyOption);
+            dataModel.put("labelColumn", labelColumn);
         } catch (Exception e) {
             LogUtil.error(getClassName(), e, "Error generating form json");
         }
