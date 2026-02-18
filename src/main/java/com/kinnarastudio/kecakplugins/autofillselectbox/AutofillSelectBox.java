@@ -214,6 +214,8 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
                     final String value = r.get(FormUtil.PROPERTY_VALUE).toString();
                     final String encrypted = encrypt(value);
 
+                    r.put("plainValue", value);
+
                     r.put(FormUtil.PROPERTY_VALUE, encrypted);
 
                     if (databasePlainValues.stream().anyMatch(value::equals)) {
@@ -273,6 +275,14 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
             
             dataModel.put("enableCrud", enableCrud);
             dataModel.put("crudFormBinder", crudFormBinder);
+
+            boolean addEdit = false;
+            if (enableCrud) {
+                 String val = getPropertyString("addEdit");
+                 addEdit = "true".equalsIgnoreCase(val);
+            }
+            
+            dataModel.put("addEdit", addEdit);
 
             if (enableCrud) {
                 try {

@@ -19,25 +19,27 @@
     <#else>
         <style>
             .select2-container {
-                margin-bottom:18px !important;
+                margin-bottom: 0 !important; 
             }
 
             .select2-search--dropdown .select2-search__field{
                 float:none !important;
             }
         </style>
+
+        <div style="display:flex; align-items:center; gap:5px; margin-bottom:18px;">
         <select class="js-select2" <#if element.properties.readonly! != 'true'>id="${elementParamName!}${element.properties.elementUniqueKey!}"</#if> name="${elementParamName!}" <#if element.properties.size?? && element.properties.size != ''> style="width:${element.properties.size!}%"</#if> <#if element.properties.multiple! == 'true'>multiple="multiple" data-role="none" data-native-menu="true"</#if> <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
             <#if enableCrud?? && enableCrud == true && !(addEmptyOption?? && addEmptyOption)>
                 <option value="__add_data__">+ Add Data</option>
             </#if>
             <#if element.properties.lazyLoading! != 'true' >
                 <#list options as option>
-                    <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if> <#if element.properties.readonly! == 'true'>disabled</#if>>${option.label!?html}</option>
+                        <option value="${option.value!?html}" data-id="${option.plainValue!}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if> <#if element.properties.readonly! == 'true'>disabled</#if>>${option.label!?html}</option>
                 </#list>
             <#else>
                 <#list options! as option>
                     <#if values?? && values?seq_contains(option.value!) || option.value == ''>
-                        <option value="${option.value!?html}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
+                        <option value="${option.value!?html}" data-id="${option.plainValue!}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
                     </#if>
                 </#list>
             </#if>
@@ -45,9 +47,21 @@
                 <option value="__add_data__">+ Add Data</option>
             </#if>
         </select>
-        <#if (element.properties.readonly! != 'true') >
-            <img id="${elementParamName!}${element.properties.elementUniqueKey!}_loading" src="${request.contextPath}/plugin/${className}/images/spin.gif" height="24" width="24" style="margin :auto; top:0; position: absolute; display: none;">
+
+        <#-- SHOW EDIT ICON -->
+        <#if addEdit?? && addEdit == true>
+            <button type="button"
+                id="${elementParamName!}_editBtn"
+                style="display:none; padding:0 10px; cursor:pointer; height:28px; align-items:center; justify-content:center;" 
+                class="btn btn-warning"> 
+                <i class="fa fa-long-arrow-right" aria-hidden="true"></i>
+            </button>
         </#if>
+
+        <#if (element.properties.readonly! != 'true') >
+            <img id="${elementParamName!}${element.properties.elementUniqueKey!}_loading" src="${request.contextPath}/plugin/${className}/images/spin.gif" height="24" width="24" style="display: none;">
+        </#if>
+        </div>
     </#if>
 
     <#if element.properties.readonly! == 'true'>
@@ -151,6 +165,63 @@
             <#if element.properties.triggerOnPageLoad! == 'true'>
                 setTimeout(() => $selectbox.change(), 1000);
             </#if>
+
+            <#if addEdit?? && addEdit == true>
+                // 1. Logic Visibility Button
+                $select.on('change', function() {
+                    let val = $(this).val();
+                    let $btn = $("#${elementParamName!}_editBtn");
+                    
+                    // Tampilkan tombol HANYA jika value tidak kosong dan bukan __add_data__
+                    if (val && val !== '' && val !== '__add_data__') {
+                        $btn.css('display', 'flex'); // Pakai flex biar icon di tengah
+                    } else {
+                        $btn.hide();
+                    }
+                });
+                
+                // Trigger change saat load agar tombol muncul jika sudah ada data terpilih
+                $select.trigger('change');
+
+                // 2. Logic Click Handler untuk Edit Button
+                $("#${elementParamName!}_editBtn").on('click', function() {
+                    let $selectedOption = $select.find(':selected');
+                    let encryptedId = $select.val();
+                    
+                    // Ambil Plain ID yang kita taruh di data-id tadi
+                    let plainId = $selectedOption.attr('data-id');
+                    
+                    // Fallback: Jika tidak ada data-id (misal dari ajax tanpa mapping), coba pakai value (risiko error jika encrypted)
+                    if (!plainId) plainId = encryptedId; 
+                    
+                    if (!plainId || plainId === '__add_data__') return;
+
+                    let frameId = "formPopup_${elementParamName!}";
+                    
+                    // Buat URL Popup Edit
+                    // Perhatikan kita menambahkan parameter &id=... agar form me-load data yang benar
+                    let url = "${request.contextPath}/web/app/${appId!}/${appVersion!}/form/embed?_submitButtonLabel=Save";
+                    
+                    if (typeof UI !== 'undefined' && typeof UI.userviewThemeParams === 'function') {
+                        url += UI.userviewThemeParams();
+                    } else if (window.ConnectionManager && window.ConnectionManager.tokenName) {
+                        url += "&" + window.ConnectionManager.tokenName + "=" + window.ConnectionManager.tokenValue;
+                    }
+
+                    // Passing parameters ke JPopup
+                    let params = {
+                        _json: "${crudFormJson!?js_string}",
+                        _callback: "${elementParamName!}_editDataCallback", // Callback beda untuk Edit
+                        _nonce: "${crudFormNonce!?js_string}",
+                        _setting: "{}",
+                        id: plainId // PENTING: Kirim ID record ke form loader
+                    };
+                    
+                    if (window.JPopup) {
+                        JPopup.show(frameId, url, params, "", "80%", "80%");
+                    }
+                });
+            </#if>
         });
     </script>
 
@@ -187,6 +258,45 @@
                 $select.trigger('change');
                 
                 // 6. Hide form pop up
+                if (window.JPopup) {
+                    JPopup.hide("formPopup_${elementParamName!}");
+                }
+            }
+
+            function ${elementParamName!}_editDataCallback(args) {
+                let result = typeof args.result === 'string' ? JSON.parse(args.result) : args.result;
+                let editedId = result.id || result.ID;
+
+                let labelColumn = "${labelColumn!}";
+                let newLabel = (labelColumn && result[labelColumn]) ? result[labelColumn] : editedId;
+
+                let $select = $('select#${elementParamName!}${element.properties.elementUniqueKey!}.js-select2');
+
+                // Cari option yang sedang diedit
+                let $option = $select.find("option[value='" + editedId + "']");
+
+                if ($option.length) {
+                    // Update text label
+                    $option.text(newLabel);
+                } else {
+                    // Jika option belum ada (misalnya lazy loading)
+                    let newOption = new Option(newLabel, editedId, true, true);
+                    $select.append(newOption);
+                }
+
+                $select.trigger('change.select2');  
+                $select.select2('destroy');
+
+                $select.kecakSelect2({
+                    dropdownAutoWidth : true,
+                    width : '${(element.properties.size)!"70"}%',
+                    theme : 'default'
+                });
+
+                // Re-select value agar select2 refresh
+                $select.val(editedId).trigger('change');
+
+                // Tutup popup
                 if (window.JPopup) {
                     JPopup.hide("formPopup_${elementParamName!}");
                 }

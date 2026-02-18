@@ -281,6 +281,30 @@
         "options_ajax": "[CONTEXT_PATH]/web/json/console/app[APP_PATH]/forms/options",
         "url": "[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions",
         "description": "Leave this field if you do not want to make changes to the data in the selectbox."
+      },
+      {
+        "name": "addEdit",
+        "label": "Add Edit Function?",
+        "type": "checkbox",
+        "value": "",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
+          }
+        ]
+      },
+      {
+        "name": "addDelete",
+        "label": "Add Delete Function?",
+        "type": "checkbox",
+        "value": "",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
+          }
+        ]
       }
     ]
   }
