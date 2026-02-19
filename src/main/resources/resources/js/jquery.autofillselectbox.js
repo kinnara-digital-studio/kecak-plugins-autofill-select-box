@@ -29,6 +29,27 @@
             let primaryKey = $element.val();
 
             if (!primaryKey || primaryKey === '__add_data__') {
+                console.log("Clearing autofill:", params.targets); 
+
+                for(let formField in params.targets) {
+                    let $selectors = FormUtil.getField(formField);
+                    
+                    $selectors.each(function() {
+                        let $selector = $(this); 
+                        
+                        if($selector.is(':checkbox, :radio')) {
+                            $selector.prop('checked', false);
+                        } else if($selector.is('select')) {
+                            $selector.val([]).trigger("change");
+                            if(typeof $selector.chosen === 'function') {
+                                $selector.trigger("chosen:updated");
+                            }
+                        } else {
+                            $selector.val('');
+                            $selector.trigger("change");
+                        }
+                    });
+                }
                 return;
             }
 
@@ -63,7 +84,7 @@
 
                     if(value || value == '') {
                         $selectors.each(function() {
-                            $selector = $(this);
+                            let $selector = $(this);
 
                             if($selector.is(':checkbox, :radio')) {
                                 let multivalue = value.split(/;/);
