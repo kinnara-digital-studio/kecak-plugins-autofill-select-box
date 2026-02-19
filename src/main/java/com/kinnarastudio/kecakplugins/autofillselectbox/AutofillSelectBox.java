@@ -277,16 +277,17 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
             dataModel.put("crudFormBinder", crudFormBinder);
 
             boolean addEdit = false;
-            if (enableCrud) {
-                 String val = getPropertyString("addEdit");
-                 addEdit = "true".equalsIgnoreCase(val);
-            }
-            
-            dataModel.put("addEdit", addEdit);
+            boolean addDelete = false;
 
             if (enableCrud) {
+                String valEdit = getPropertyString("addEdit");
+                addEdit = "true".equalsIgnoreCase(valEdit);
+                String valDelete = getPropertyString("addDelete");
+                addDelete = "true".equalsIgnoreCase(valDelete);
+
                 try {
                     String crudFormId = (String) crudFormBinder.get(FormUtil.PROPERTY_CLASS_NAME);
+                    dataModel.put("crudFormDefId", crudFormId);
                     Form crudForm = generateSelectedCrudForm(appDefinition, crudFormId);
                     if (crudForm != null) {
                         FormService formService = (FormService) AppUtil.getApplicationContext().getBean("formService");
@@ -306,6 +307,9 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
                     LogUtil.error(getClassName(), e, "Error generating CRUD Form JSON");
                 }
             }
+
+            dataModel.put("addEdit", addEdit);
+            dataModel.put("addDelete", addDelete);
 
             boolean addEmptyOption = false;
             String labelColumn = "";

@@ -48,13 +48,23 @@
             </#if>
         </select>
 
-        <#-- SHOW EDIT ICON -->
+        <#-- Show Edit Icon -->
         <#if addEdit?? && addEdit == true>
             <button type="button"
                 id="${elementParamName!}_editBtn"
                 style="display:none; padding:0 10px; cursor:pointer; height:28px; align-items:center; justify-content:center;" 
                 class="btn btn-warning"> 
                 <i class="fa fa-long-arrow-right" aria-hidden="true"></i>
+            </button>
+        </#if>
+
+        <#-- Show Delete Icon-->
+        <#if addDelete?? && addDelete == true>
+            <button type="button"
+                id="${elementParamName!}_deleteBtn"
+                style="display:none; padding:0 10px; cursor:pointer; height:28px; align-items:center; justify-content:center;" 
+                class="btn btn-danger"> 
+                <i class="fa fa-trash" aria-hidden="true"></i>
             </button>
         </#if>
 
@@ -170,13 +180,13 @@
                 // 1. Logic Visibility Button
                 $select.on('change', function() {
                     let val = $(this).val();
-                    let $btn = $("#${elementParamName!}_editBtn");
+                    let $editBtn = $("#${elementParamName!}_editBtn");
                     
                     // Tampilkan tombol HANYA jika value tidak kosong dan bukan __add_data__
                     if (val && val !== '' && val !== '__add_data__') {
-                        $btn.css('display', 'flex'); // Pakai flex biar icon di tengah
+                        $editBtn.css('display', 'flex'); 
                     } else {
-                        $btn.hide();
+                        $editBtn.hide();
                     }
                 });
                 
@@ -211,15 +221,70 @@
                     // Passing parameters ke JPopup
                     let params = {
                         _json: "${crudFormJson!?js_string}",
-                        _callback: "${elementParamName!}_editDataCallback", // Callback beda untuk Edit
+                        _callback: "${elementParamName!}_editDataCallback", // Callback untuk Edit
                         _nonce: "${crudFormNonce!?js_string}",
                         _setting: "{}",
-                        id: plainId // PENTING: Kirim ID record ke form loader
+                        id: plainId // Send id to form loader
                     };
                     
                     if (window.JPopup) {
                         JPopup.show(frameId, url, params, "", "80%", "80%");
                     }
+                });
+            </#if>
+
+            <#if addDelete?? && addDelete == true>
+                // 1. Logic Visibility Button
+                $select.on('change', function() {
+                    let val = $(this).val();
+                    let $deleteBtn = $("#${elementParamName!}_deleteBtn");
+                    
+                    // Tampilkan tombol HANYA jika value tidak kosong dan bukan __add_data__
+                    if (val && val !== '' && val !== '__add_data__') {
+                        $deleteBtn.css('display', 'flex');
+                    } else {
+                        $deleteBtn.hide();
+                    }
+                });
+                
+                // Trigger change saat load agar tombol muncul jika sudah ada data terpilih
+                $select.trigger('change');
+
+                // 2. Logic Click Handler untuk Delete Button
+                $("#${elementParamName!}_deleteBtn").on('click', function() {
+                    let $selectedOption = $select.find(':selected');
+                    let encryptedId = $select.val();
+                    let plainId = $selectedOption.attr('data-id');
+                    if (!plainId) plainId = encryptedId;
+
+                    if (!plainId || plainId === '__add_data__') return;
+
+                    if (!confirm("Are you sure you want to delete this data?")) return;
+
+                    let deleteUrl = "${request.contextPath}/web/json/data/app/${appId!}/form/${crudFormDefId!}/" + plainId;
+
+                    $.ajax({
+                        url: deleteUrl,
+                        type: "DELETE",
+                        headers: {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json"
+                        },
+                        success: function(response) {
+                            console.log("Success:", response);
+                            // Hapus option dari select
+                            $select.find("option[value='" + plainId + "']").remove();
+                            $select.val(null).trigger('change');
+                            alert("Data deleted successfully.");
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("AJAX Error Details:");
+                            console.error("- Status Code:", xhr.status);
+                            console.error("- Status Text:", xhr.statusText);
+                            console.error("- Response Text:", xhr.responseText);
+                            alert("Failed to delete data. Check console for details.");
+                        }
+                    });
                 });
             </#if>
         });
@@ -246,7 +311,7 @@
                     return $(this).val() !== '__add_data__' && $(this).val() !== '';
                 });
                 
-                // 3. Sort by alph
+                // 3. Sort by alphabet
                 $options.sort(function(a, b) {
                     return a.text.localeCompare(b.text);
                 });
@@ -299,6 +364,25 @@
                 // Tutup popup
                 if (window.JPopup) {
                     JPopup.hide("formPopup_${elementParamName!}");
+                }
+            }
+
+            function ${elementParamName!}_deleteDataCallback(args) {
+                 // Ambil ID yang dihapus
+                let result = typeof args.result === 'string' ? JSON.parse(args.result) : args.result;
+                let deletedId = result.id || result.ID;
+
+                let $select = $('select#${elementParamName!}${element.properties.elementUniqueKey!}.js-select2');
+
+                // Hapus option dari selectbox
+                $select.find("option[value='" + deletedId + "']").remove();
+
+                // Reset value dan trigger change
+                $select.val(null).trigger('change');
+                
+                // Tutup popup
+                if (window.JPopup) {
+                    JPopup.hide("formPopupDelete_${elementParamName!}");
                 }
             }
 
