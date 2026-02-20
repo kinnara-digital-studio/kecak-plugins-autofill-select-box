@@ -340,11 +340,6 @@
         registerCrudCallbacks: function () {
 
             const self = this;
-            const selectId =
-                "select#" +
-                this.config.paramName +
-                this.config.elementUniqueKey +
-                ".js-select2";
 
             /* ===== ADD CALLBACK ===== */
             window[this.config.paramName + "_addDataCallback"] = function (args) {
