@@ -20,8 +20,10 @@
             this.config = config || {};
 
             this.prepareCrudOption();
+            this.initDynamicOptions();
             this.initSelect2();
             this.bindEvents();
+            this.bindControlFieldWatcher();
             this.prepareAutofill();
             this.registerCrudCallbacks();
 
@@ -32,12 +34,91 @@
 
         /* ================= SELECT2 ================= */
         initSelect2: function () {
-            this.select.kecakSelect2({
+            const isLazy =
+                this.config.lazyLoading === "true" &&
+                this.config.controlField;
+
+            let config = {
                 dropdownAutoWidth: true,
                 width: this.select.css("width"),
                 theme: "default"
+            };
+
+            if (isLazy) {
+
+                config.ajax = {
+                    url: `${this.config.contextPath}/web/json/app/${this.config.appId}/${this.config.appVersion}/plugin/${this.config.className}/service`,
+                    delay: 500,
+                    dataType: "json",
+                    data: (params) => {
+                        return {
+                            search: params.term,
+                            formDefId: this.config.formDefId,
+                            fieldId: this.config.fieldId,
+                            nonce: this.config.nonce,
+                            binderData: this.config.binderData,
+                            grouping: FormUtil.getValue(this.config.controlField),
+                            page: params.page || 1
+                        };
+                    }
+                };
+            }
+
+            this.select.kecakSelect2(config);
+        },
+
+        /* ================= CONTROL FIELD  ==================== */
+        initDynamicOptions() {
+
+            const hasControl =
+                this.config.controlField &&
+                this.config.controlField !== "";
+
+            const isReadonlyLabel =
+                this.config.readonly === "true" &&
+                this.config.readonlyLabel === "true";
+
+            const isLazy =
+                this.config.lazyLoading === "true";
+
+            if (!hasControl || isReadonlyLabel || isLazy) return;
+
+            if (typeof this.select.dynamicOptions !== "function") return;
+
+            this.select.dynamicOptions({
+                controlField: this.config.controlFieldParamName,
+                paramName: this.config.paramName,
+                type: "selectbox",
+                readonly: this.config.readonly,
+                nonce: this.config.nonce,
+                binderData: this.config.binderData,
+                appId: this.config.appId,
+                appVersion: this.config.appVersion,
+                contextPath: this.config.contextPath
             });
         },
+
+        bindControlFieldWatcher() {
+
+            if (!this.config.controlField) return;
+
+            const $control = FormUtil.getField(this.config.controlField);
+
+            if (!$control || !$control.length) return;
+
+            $control.off("change.dependent")
+                .on("change.dependent", () => {
+
+                    const isLazy =
+                        this.config.lazyLoading === "true";
+
+                    if (isLazy) {
+                        this.select.val(null).trigger("change");
+                    }
+
+                });
+        },
+
 
         /* ================= ADD DATA OPTION POSITION ================= */
         prepareCrudOption: function () {

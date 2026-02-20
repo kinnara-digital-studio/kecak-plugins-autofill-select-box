@@ -131,8 +131,17 @@
             addDelete : ${(addDelete!false)?string('true','false')},
             crudFormJson : '${crudFormJson!?js_string}',
             crudFormNonce : '${crudFormNonce!?js_string}',
+
             labelColumn: '${labelColumn!}',
             elementUniqueKey: '${element.properties.elementUniqueKey!}',
+            formDefId : '${formDefId!}',
+            fieldId : '${element.properties.id!}',
+            nonce : '${element.properties.nonce!}',
+            binderData : '${element.properties.binderData!}',
+            controlField : '${element.properties.controlField!}',
+            controlFieldParamName : '${element.properties.controlFieldParamName!}',
+            readonly : '${element.properties.readonly!}',
+            lazyLoading : ${(element.properties.lazyLoading!false)?string('true','false')},
 
             /* ================= AUTOFILL ================= */
             targets : ${fieldsMappingJson!},
