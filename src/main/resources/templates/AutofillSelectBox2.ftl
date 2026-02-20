@@ -141,6 +141,7 @@
             controlField : '${element.properties.controlField!}',
             controlFieldParamName : '${element.properties.controlFieldParamName!}',
             readonly : '${element.properties.readonly!}',
+            readonlyLabel : '${element.properties.readonlyLabel!}',
             lazyLoading : ${(element.properties.lazyLoading!false)?string('true','false')},
 
             /* ================= AUTOFILL ================= */
