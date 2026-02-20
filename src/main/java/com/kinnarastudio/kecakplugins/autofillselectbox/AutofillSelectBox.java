@@ -185,7 +185,7 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
 
     @Override
     public String renderTemplate(FormData formData, Map dataModel) {
-        String template = "AutofillSelectBox.ftl";
+        String template = "AutofillSelectBox2.ftl";
         return renderTemplate(formData, dataModel, template);
     }
 
