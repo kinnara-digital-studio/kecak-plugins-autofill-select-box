@@ -3,6 +3,9 @@
     <link rel="stylesheet" href="${request.contextPath}/node_modules/select2/dist/css/select2.min.css">
     <script type="text/javascript" src="${request.contextPath}/js/select2.kecak.js"></script>
     <script type="text/javascript" src="${request.contextPath}/plugin/${className}/js/jquery.autofillselectbox.js"></script>
+    
+    <!-- ================= CONTROLLER ================= -->
+    <script type="text/javascript" src="${request.contextPath}/plugin/${className}/js/autofill-selectbox-crud.js"></script>
 
     <label class="label" for="${elementParamName!}${element.properties.elementUniqueKey!}" field-tooltip="${elementParamName!}">${element.properties.label} <span class="form-cell-validator">${decoration}</span><#if error??> <span class="form-error-message">${error}</span></#if></label>
     <#if (element.properties.readonly! == 'true' && element.properties.readonlyLabel! == 'true') >
@@ -147,280 +150,29 @@
                 targets : ${fieldsMappingJson!}
             });
 
-            let $select = $selectbox;
-
-            let enableCrud = ${(enableCrud!false)?string('true','false')};
-            let addEmptyOption = ${(addEmptyOption!false)?string('true','false')};
-
-            if (enableCrud) {
-                $select.find("option[value='__add_data__']").remove();
-
-                if (addEmptyOption) {
-                    let $empty = $select.find("option[value='']").first();
-
-                    if ($empty.length) {
-                        $('<option value="__add_data__">+ Add Data</option>')
-                            .insertAfter($empty);
-                    } else {
-                        $select.prepend('<option value="__add_data__">+ Add Data</option>');
-                    }
-
-                } else {
-                    $select.prepend('<option value="__add_data__">+ Add Data</option>');
-                }
-
-                $select.trigger('change.select2');
-            }
-
             <#if element.properties.triggerOnPageLoad! == 'true'>
                 setTimeout(() => $selectbox.change(), 1000);
             </#if>
 
-            <#if addEdit?? && addEdit == true>
-                // 1. Logic Visibility Button
-                $select.on('change', function() {
-                    let val = $(this).val();
-                    let $editBtn = $("#${elementParamName!}_editBtn");
-                    
-                    // Tampilkan tombol HANYA jika value tidak kosong dan bukan __add_data__
-                    if (val && val !== '' && val !== '__add_data__') {
-                        $editBtn.css('display', 'flex'); 
-                    } else {
-                        $editBtn.hide();
-                    }
-                });
-                
-                // Trigger change saat load agar tombol muncul jika sudah ada data terpilih
-                $select.trigger('change');
+            AutofillSelectBoxCrudController.init($selectbox, {
+                /* ================= BASIC ================= */
+                paramName : '${elementParamName!}',
+                contextPath : '${request.contextPath}',
+                appId : '${appId!}',
+                appVersion : '${appVersion!}',
+                className : '${className}',
 
-                // 2. Logic Click Handler untuk Edit Button
-                $("#${elementParamName!}_editBtn").on('click', function() {
-                    let $selectedOption = $select.find(':selected');
-                    let encryptedId = $select.val();
-                    
-                    // Ambil Plain ID yang kita taruh di data-id tadi
-                    let plainId = $selectedOption.attr('data-id');
-                    
-                    // Fallback: Jika tidak ada data-id (misal dari ajax tanpa mapping), coba pakai value (risiko error jika encrypted)
-                    if (!plainId) plainId = encryptedId; 
-                    
-                    if (!plainId || plainId === '__add_data__') return;
+                /* ================= CRUD ================= */
+                enableCrud : ${(enableCrud!false)?string('true','false')},
+                addEmptyOption : ${(addEmptyOption!false)?string('true','false')},
+                crudFormDefId : '${crudFormDefId!}',
+                addEdit : ${(addEdit!false)?string('true','false')},
+                addDelete : ${(addDelete!false)?string('true','false')},
+                crudFormJson : '${crudFormJson!?js_string}',
+                crudFormNonce : '${crudFormNonce!?js_string}',
+                labelColumn: '${labelColumn!}'
+            });
 
-                    let frameId = "formPopup_${elementParamName!}";
-                    
-                    // Buat URL Popup Edit
-                    // Perhatikan kita menambahkan parameter &id=... agar form me-load data yang benar
-                    let url = "${request.contextPath}/web/app/${appId!}/${appVersion!}/form/embed?_submitButtonLabel=Save";
-                    
-                    if (typeof UI !== 'undefined' && typeof UI.userviewThemeParams === 'function') {
-                        url += UI.userviewThemeParams();
-                    } else if (window.ConnectionManager && window.ConnectionManager.tokenName) {
-                        url += "&" + window.ConnectionManager.tokenName + "=" + window.ConnectionManager.tokenValue;
-                    }
-
-                    // Passing parameters ke JPopup
-                    let params = {
-                        _json: "${crudFormJson!?js_string}",
-                        _callback: "${elementParamName!}_editDataCallback", // Callback untuk Edit
-                        _nonce: "${crudFormNonce!?js_string}",
-                        _setting: "{}",
-                        id: plainId // Send id to form loader
-                    };
-                    
-                    if (window.JPopup) {
-                        JPopup.show(frameId, url, params, "", "80%", "80%");
-                    }
-                });
-            </#if>
-
-            <#if addDelete?? && addDelete == true>
-                // 1. Logic Visibility Button
-                $select.on('change', function() {
-                    let val = $(this).val();
-                    let $deleteBtn = $("#${elementParamName!}_deleteBtn");
-                    
-                    // Tampilkan tombol HANYA jika value tidak kosong dan bukan __add_data__
-                    if (val && val !== '' && val !== '__add_data__') {
-                        $deleteBtn.css('display', 'flex');
-                    } else {
-                        $deleteBtn.hide();
-                    }
-                });
-                
-                // Trigger change saat load agar tombol muncul jika sudah ada data terpilih
-                $select.trigger('change');
-
-                // 2. Logic Click Handler untuk Delete Button
-                $("#${elementParamName!}_deleteBtn").on('click', function() {
-                    let $selectedOption = $select.find(':selected');
-                    let encryptedId = $select.val();
-                    let plainId = $selectedOption.attr('data-id');
-                    if (!plainId) plainId = encryptedId;
-
-                    if (!plainId || plainId === '__add_data__') return;
-
-                    if (!confirm("Are you sure you want to delete this data?")) return;
-
-                    let deleteUrl = "${request.contextPath}/web/json/data/app/${appId!}/form/${crudFormDefId!}/" + plainId;
-
-                    $.ajax({
-                        url: deleteUrl,
-                        type: "DELETE",
-                        headers: {
-                            "Accept": "application/json",
-                            "Content-Type": "application/json"
-                        },
-                        success: function(response) {
-                            console.log("Success:", response);
-                            // Hapus option dari select
-                            $select.find("option[value='" + plainId + "']").remove();
-                            $select.val(null).trigger('change');
-                            alert("Data deleted successfully.");
-                        },
-                        error: function(xhr, status, error) {
-                            console.error("AJAX Error Details:");
-                            console.error("- Status Code:", xhr.status);
-                            console.error("- Status Text:", xhr.statusText);
-                            console.error("- Response Text:", xhr.responseText);
-                            alert("Failed to delete data. Check console for details.");
-                        }
-                    });
-                });
-            </#if>
         });
     </script>
-
-    <#if enableCrud?? && enableCrud == true>
-        <script type="text/javascript">
-            function ${elementParamName!}_addDataCallback(args) {
-                let result = typeof args.result === 'string' ? JSON.parse(args.result) : args.result;
-                let newId = result.id || result.ID;
-                
-                let labelColumn = "${labelColumn!}";
-
-                let newLabel = (labelColumn && result[labelColumn]) ? result[labelColumn] : newId;
-
-                let $select = $('select#${elementParamName!}${element.properties.elementUniqueKey!}.js-select2');
-                
-                // 1. Adding new option to select
-                let newOption = new Option(newLabel, newId, true, true);
-                $select.append(newOption);
-                
-                // 2. Get all option expect for add data and empty option
-                let $options = $select.find('option').filter(function() {
-                    return $(this).val() !== '__add_data__' && $(this).val() !== '';
-                });
-                
-                // 3. Sort by alphabet
-                $options.sort(function(a, b) {
-                    return a.text.localeCompare(b.text);
-                });
-                
-                // 4. Insert sorted option to select
-                $select.append($options);
-                
-                // 5. Trigger select to change
-                $select.trigger('change');
-                
-                // 6. Hide form pop up
-                if (window.JPopup) {
-                    JPopup.hide("formPopup_${elementParamName!}");
-                }
-            }
-
-            function ${elementParamName!}_editDataCallback(args) {
-                let result = typeof args.result === 'string' ? JSON.parse(args.result) : args.result;
-                let editedId = result.id || result.ID;
-
-                let labelColumn = "${labelColumn!}";
-                let newLabel = (labelColumn && result[labelColumn]) ? result[labelColumn] : editedId;
-
-                let $select = $('select#${elementParamName!}${element.properties.elementUniqueKey!}.js-select2');
-
-                // Cari option yang sedang diedit
-                let $option = $select.find("option[value='" + editedId + "']");
-
-                if ($option.length) {
-                    // Update text label
-                    $option.text(newLabel);
-                } else {
-                    // Jika option belum ada (misalnya lazy loading)
-                    let newOption = new Option(newLabel, editedId, true, true);
-                    $select.append(newOption);
-                }
-
-                $select.trigger('change.select2');  
-                $select.select2('destroy');
-
-                $select.kecakSelect2({
-                    dropdownAutoWidth : true,
-                    width : '${(element.properties.size)!"70"}%',
-                    theme : 'default'
-                });
-
-                // Re-select value agar select2 refresh
-                $select.val(editedId).trigger('change');
-
-                // Tutup popup
-                if (window.JPopup) {
-                    JPopup.hide("formPopup_${elementParamName!}");
-                }
-            }
-
-            function ${elementParamName!}_deleteDataCallback(args) {
-                 // Ambil ID yang dihapus
-                let result = typeof args.result === 'string' ? JSON.parse(args.result) : args.result;
-                let deletedId = result.id || result.ID;
-
-                let $select = $('select#${elementParamName!}${element.properties.elementUniqueKey!}.js-select2');
-
-                // Hapus option dari selectbox
-                $select.find("option[value='" + deletedId + "']").remove();
-
-                // Reset value dan trigger change
-                $select.val(null).trigger('change');
-                
-                // Tutup popup
-                if (window.JPopup) {
-                    JPopup.hide("formPopupDelete_${elementParamName!}");
-                }
-            }
-
-            $(document).ready(function() {
-                let frameId = "formPopup_${elementParamName!}";
-                let $select = $('select#${elementParamName!}${element.properties.elementUniqueKey!}.js-select2');
-
-                if (window.JPopup) {
-                    JPopup.create(frameId, "Add Data", "80%", "80%");
-                }
-
-                $select.on('change', function (e) {
-                    if ($(this).val() === '__add_data__') {
-                        $(this).val(null).trigger('change.select2');
-                        
-                        let url = "${request.contextPath}/web/app/${appId!}/${appVersion!}/form/embed?_submitButtonLabel=Submit";
-                        
-                        if (typeof UI !== 'undefined' && typeof UI.userviewThemeParams === 'function') {
-                            url += UI.userviewThemeParams();
-                        } else if (window.ConnectionManager && window.ConnectionManager.tokenName) {
-                            url += "&" + window.ConnectionManager.tokenName + "=" + window.ConnectionManager.tokenValue;
-                        }
-
-                        let params = {
-                            _json: "${crudFormJson!?js_string}",
-                            _callback: "${elementParamName!}_addDataCallback",
-                            _nonce: "${crudFormNonce!?js_string}",
-                            _setting: "{}"
-                        };
-                        
-                        if (window.JPopup) {
-                            JPopup.show(frameId, url, params, "", "80%", "80%");
-                        } else {
-                            console.error("JPopup script is not loaded in this environment.");
-                        }
-                    }
-                });
-            });
-        </script>
-    </#if>
 </div>
