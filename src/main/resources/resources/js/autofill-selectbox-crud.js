@@ -50,6 +50,11 @@
             }
         },
 
+        executeEnhancement: function ($trigger) {
+            if (typeof this.config.javascriptEnhancementOnFormLoad === 'function') {
+                this.config.javascriptEnhancementOnFormLoad(this.select, $trigger);
+            }
+        },
 
         /* ================= EVENTS ================= */
         bindEvents: function () {
@@ -58,6 +63,7 @@
 
                 if (value === "__add_data__") {
                     this.select.val(null).trigger("change.select2");
+                    this.executeEnhancement(this.select);
                     this.openPopup("add");
                     return;
                 }
@@ -71,9 +77,13 @@
             }
 
             if (this.config.addEdit) {
-                $("#" + this.config.paramName + "_editBtn")
+                const $editBtn = $("#" + this.config.paramName + "_editBtn");
+                $editBtn
                     .off("click")
-                    .on("click", () => this.openPopup("edit"));
+                    .on("click", () => {
+                        this.executeEnhancement($editBtn);
+                        this.openPopup("edit");
+                    });
             }
         },
 
@@ -161,7 +171,8 @@
                     this.config.paramName +
                     (isEdit ? "_editDataCallback" : "_addDataCallback"),
                 _nonce: this.config.crudFormNonce,
-                _setting: "{}"
+                _setting: "{}",
+                defaultValues: "{}"
             };
 
             if (isEdit) {

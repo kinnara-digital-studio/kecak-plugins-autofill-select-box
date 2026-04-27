@@ -170,7 +170,8 @@
                 addDelete : ${(addDelete!false)?string('true','false')},
                 crudFormJson : '${crudFormJson!?js_string}',
                 crudFormNonce : '${crudFormNonce!?js_string}',
-                labelColumn: '${labelColumn!}'
+                labelColumn: '${labelColumn!}',
+                javascriptEnhancementOnFormLoad: ${element.properties.javascriptEnhancementOnFormLoad!'function($grid, $button) {}'}
             });
 
         });

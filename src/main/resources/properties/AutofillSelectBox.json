@@ -305,6 +305,16 @@
             "label": ""
           }
         ]
+      },
+      {
+          "name": "javascriptEnhancementOnFormLoad",
+          "label": "Javascript on form load ",
+          "description": "Will be executed right before popup appears",
+          "type": "codeeditor",
+          "mode": "javascript",
+          "rows": "7",
+          "cols": "65",
+          "value": "function($grid, $button) { /*code here*/ }"
       }
     ]
   }
