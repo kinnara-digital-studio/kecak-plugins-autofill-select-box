@@ -5,28 +5,19 @@
 
     if (window.AutofillSelectBoxCrudController) return;
 
-    window.AutofillSelectBoxCrudController = {
+    function AutofillSelectBoxCrudInstance($select, config) {
+        this.select = $select;
+        this.config = config || {};
 
-        /* ================= STATE ================= */
-        select: null,
-        config: null,
+        this.prepareCrudOption();
+        this.bindEvents();
+        this.registerCrudCallbacks();
+    }
 
-        /* ================= INIT ================= */
-        init: function ($select, config) {
-
-            if (!$select || !$select.length) return;
-
-            this.select = $select;
-            this.config = config || {};
-
-            this.prepareCrudOption();
-            this.bindEvents();
-            this.registerCrudCallbacks();
-        },
+    AutofillSelectBoxCrudInstance.prototype = {
 
         /* ================= ADD DATA OPTION POSITION ================= */
         prepareCrudOption: function () {
-
             const $select = this.select;
 
             if (this.config.enableCrud){
@@ -36,7 +27,7 @@
                     let $empty = $select.find("option[value='']").first();
 
                     if ($empty.length) {
-                    $('<option value="__add_data__">+ Add Data</option>')
+                        $('<option value="__add_data__">+ Add Data</option>')
                             .insertAfter($empty);
                     } else {
                         $select.prepend('<option value="__add_data__">+ Add Data</option>');
@@ -58,42 +49,47 @@
 
         /* ================= EVENTS ================= */
         bindEvents: function () {
-            this.select.on("change", () => {
-                const value = this.select.val();
+            const self = this;
 
-                if (value === "__add_data__") {
-                    this.select.val(null).trigger("change.select2");
-                    this.executeEnhancement(this.select);
-                    this.openPopup("add");
+            this.select.on("change", function () {
+                const value = self.select.val();
+                const isAddData = value === "__add_data__" || (Array.isArray(value) && value.indexOf("__add_data__") !== -1);
+
+                if (isAddData) {
+                    self.select.val(null).trigger("change.select2");
+                    self.executeEnhancement(self.select);
+                    self.openPopup("add");
                     return;
                 }
-                this.toggleButtons(value);
+                self.toggleButtons(value);
             });
 
             if (this.config.addDelete) {
                 $("#" + this.config.paramName + "_deleteBtn")
                     .off("click")
-                    .on("click", () => this.deleteData());
+                    .on("click", function () {
+                        self.deleteData();
+                    });
             }
 
             if (this.config.addEdit) {
                 const $editBtn = $("#" + this.config.paramName + "_editBtn");
                 $editBtn
                     .off("click")
-                    .on("click", () => {
-                        this.executeEnhancement($editBtn);
-                        this.openPopup("edit");
+                    .on("click", function () {
+                        self.executeEnhancement($editBtn);
+                        self.openPopup("edit");
                     });
             }
         },
 
         /* ================= BUTTON VISIBILITY ================= */
         toggleButtons: function (value) {
-
             const $edit = $("#" + this.config.paramName + "_editBtn");
             const $delete = $("#" + this.config.paramName + "_deleteBtn");
+            const isAddData = value === "__add_data__" || (Array.isArray(value) && value.indexOf("__add_data__") !== -1);
 
-            if (value && value !== "__add_data__") {
+            if (value && !isAddData) {
                 if (this.config.addEdit) $edit.css("display", "flex");
                 if (this.config.addDelete) $delete.css("display", "flex");
             } else {
@@ -104,7 +100,7 @@
 
         /* ================= DELETE ================= */
         deleteData: function () {
-
+            const self = this;
             const selectedId = this.select.val();
             if (!selectedId) return;
 
@@ -120,12 +116,12 @@
                     "/" +
                     selectedId,
                 type: "DELETE",
-                success: () => {
-                    this.select
+                success: function () {
+                    self.select
                         .find("option[value='" + selectedId + "']")
                         .remove();
 
-                    this.select.val(null).trigger("change");
+                    self.select.val(null).trigger("change");
                     alert("Data deleted successfully");
                 }
             });
@@ -133,7 +129,6 @@
 
         /* ================= POPUP ================= */
         openPopup: function (type) {
-
             const isEdit = type === "edit";
             const frameId = "formPopup_" + this.config.paramName;
 
@@ -176,7 +171,6 @@
             };
 
             if (isEdit) {
-
                 const $select = this.select;
                 let $selectedOption = $select.find(":selected");
                 let encryptedId = $select.val();
@@ -193,15 +187,12 @@
             }
         },
 
-
         /* ================= REGISTER CALLBACK ================= */
         registerCrudCallbacks: function () {
-
             const self = this;
 
             /* ===== ADD CALLBACK ===== */
             window[this.config.paramName + "_addDataCallback"] = function (args) {
-
                 let result =
                     typeof args.result === "string"
                         ? JSON.parse(args.result)
@@ -227,7 +218,6 @@
 
             /* ===== EDIT CALLBACK ===== */
             window[self.config.paramName + "_editDataCallback"] = function (args) {
-
                 let result =
                     typeof args.result === "string"
                         ? JSON.parse(args.result)
@@ -260,8 +250,19 @@
                     JPopup.hide("formPopup_" + self.config.paramName);
                 }
             };
-        },
+        }
+    };
 
+    window.AutofillSelectBoxCrudController = {
+        instances: {},
+        init: function ($select, config) {
+            if (!$select || !$select.length) return;
+            const instance = new AutofillSelectBoxCrudInstance($select, config);
+            if (config && config.paramName) {
+                this.instances[config.paramName] = instance;
+            }
+            return instance;
+        }
     };
 
 })();

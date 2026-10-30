@@ -85,11 +85,11 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
                 try {
                     final JSONObject body = constructRequestBody(request);
                     final String formDefId = getRequiredBodyPayload(body, BODY_FORM_ID);
-                    final String sectionId = getRequiredBodyPayload(body, BODY_SECTION_ID);
+                    final String sectionId = getOptionalBodyPayload(body, BODY_SECTION_ID, "");
                     final String fieldId = getRequiredBodyPayload(body, BODY_FIELD_ID);
                     final String id = getRequiredBodyPayload(body, PARAMETER_ID);
 
-                    final JSONObject requestParameter = new JSONObject(getRequiredBodyPayload(body, "requestParameter"));
+                    final JSONObject requestParameter = new JSONObject(getOptionalBodyPayload(body, "requestParameter", "{}"));
 
                     // build form
                     @Nonnull final Form form = Optional.ofNullable(appDefinition)
@@ -97,8 +97,18 @@ public class AutofillSelectBox extends SelectBox implements PluginWebSupport {
                             .orElseThrow(() -> new ApiException(HttpServletResponse.SC_BAD_REQUEST, "Error generating form [" + formDefId + "]"));
 
                     final FormData formData = new FormData();
-                    final Element section = FormUtil.findElement(sectionId, form, formData, true);
-                    final Element elementSelectBox = FormUtil.findElement(fieldId, section, formData, true);
+                    Element elementSelectBox = null;
+                    if (!sectionId.isEmpty()) {
+                        final Element section = FormUtil.findElement(sectionId, form, formData, true);
+                        if (section != null) {
+                            elementSelectBox = FormUtil.findElement(fieldId, section, formData, true);
+                        }
+                    }
+
+                    if (elementSelectBox == null) {
+                        elementSelectBox = FormUtil.findElement(fieldId, form, formData, true);
+                    }
+
                     if (!(elementSelectBox instanceof AutofillSelectBox)) {
                         throw new ApiException(HttpServletResponse.SC_BAD_REQUEST, "Element ID [" + fieldId + "] is not found in form [" + formDefId + "]");
                     }

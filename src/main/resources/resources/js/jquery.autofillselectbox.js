@@ -28,7 +28,8 @@
 
             let primaryKey = $element.val();
 
-            if (!primaryKey || primaryKey === '__add_data__') {
+            const isAddData = primaryKey === '__add_data__' || (Array.isArray(primaryKey) && primaryKey.indexOf('__add_data__') !== -1);
+            if (!primaryKey || isAddData || (Array.isArray(primaryKey) && primaryKey.length === 0)) {
                 console.log("Clearing autofill:", params.targets); 
 
                 for(let formField in params.targets) {
