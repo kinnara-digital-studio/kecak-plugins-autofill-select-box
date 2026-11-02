@@ -171,9 +171,8 @@
                 crudFormJson : '${crudFormJson!?js_string}',
                 crudFormNonce : '${crudFormNonce!?js_string}',
                 labelColumn: '${labelColumn!}',
-                javascriptEnhancementOnFormLoad: ${element.properties.javascriptEnhancementOnFormLoad!'function($grid, $button) {}'}
+                javascriptEnhancementOnFormLoad: ${(((element.properties.javascriptEnhancementOnFormLoad)!'')?trim?has_content)?then((element.properties.javascriptEnhancementOnFormLoad)!, 'function($grid, $button) {}')}
             });
-
         });
     </script>
 </div>
