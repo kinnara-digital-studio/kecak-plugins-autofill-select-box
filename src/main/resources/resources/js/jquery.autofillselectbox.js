@@ -26,7 +26,11 @@
         triggerOnChange : function(params) {
             let $element = $(this);
 
-            let primaryKey = $element.val();
+            if (params && params.readonly) {
+                return;
+            }
+
+            let primaryKey = $element.val() || $element.find('option:selected').val();
 
             const isAddData = primaryKey === '__add_data__' || (Array.isArray(primaryKey) && primaryKey.indexOf('__add_data__') !== -1);
             if (!primaryKey || isAddData || (Array.isArray(primaryKey) && primaryKey.length === 0)) {

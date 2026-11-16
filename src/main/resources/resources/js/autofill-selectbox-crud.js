@@ -12,15 +12,31 @@
         this.prepareCrudOption();
         this.bindEvents();
         this.registerCrudCallbacks();
+
+        this.toggleButtons(this.getValue());
     }
 
     AutofillSelectBoxCrudInstance.prototype = {
+
+        getValue: function () {
+            let val = this.select.val();
+            if (!val || (Array.isArray(val) && val.length === 0)) {
+                let $opt = this.select.find("option:selected");
+                if ($opt.length && $opt.val()) {
+                    val = $opt.val();
+                } else if (this.config.paramName) {
+                    let hiddenVal = $("#" + this.config.paramName + "_hidden").val() || $("#" + this.config.paramName).val();
+                    if (hiddenVal) val = hiddenVal;
+                }
+            }
+            return val;
+        },
 
         /* ================= ADD DATA OPTION POSITION ================= */
         prepareCrudOption: function () {
             const $select = this.select;
 
-            if (this.config.enableCrud){
+            if (this.config.enableCrud && !this.config.readonly){
                 $select.find("option[value='__add_data__']").remove();
 
                 if (this.config.addEmptyOption) {
@@ -64,35 +80,54 @@
                 self.toggleButtons(value);
             });
 
-            if (this.config.addDelete) {
-                $("#" + this.config.paramName + "_deleteBtn")
+            if (this.config.readonly) {
+                const $viewBtn = $("#" + this.config.paramName + "_viewBtn");
+                $viewBtn
                     .off("click")
                     .on("click", function () {
-                        self.deleteData();
+                        self.executeEnhancement($viewBtn);
+                        self.openPopup("view");
                     });
-            }
+            } else {
+                if (this.config.addDelete) {
+                    $("#" + this.config.paramName + "_deleteBtn")
+                        .off("click")
+                        .on("click", function () {
+                            self.deleteData();
+                        });
+                }
 
-            if (this.config.addEdit) {
-                const $editBtn = $("#" + this.config.paramName + "_editBtn");
-                $editBtn
-                    .off("click")
-                    .on("click", function () {
-                        self.executeEnhancement($editBtn);
-                        self.openPopup("edit");
-                    });
+                if (this.config.addEdit) {
+                    const $editBtn = $("#" + this.config.paramName + "_editBtn");
+                    $editBtn
+                        .off("click")
+                        .on("click", function () {
+                            self.executeEnhancement($editBtn);
+                            self.openPopup("edit");
+                        });
+                }
             }
         },
 
         /* ================= BUTTON VISIBILITY ================= */
         toggleButtons: function (value) {
+            if (value === undefined || value === null || value === "") {
+                value = this.getValue();
+            }
             const $edit = $("#" + this.config.paramName + "_editBtn");
             const $delete = $("#" + this.config.paramName + "_deleteBtn");
+            const $view = $("#" + this.config.paramName + "_viewBtn");
             const isAddData = value === "__add_data__" || (Array.isArray(value) && value.indexOf("__add_data__") !== -1);
 
             if (value && !isAddData) {
-                if (this.config.addEdit) $edit.css("display", "flex");
-                if (this.config.addDelete) $delete.css("display", "flex");
+                if (this.config.readonly) {
+                    $view.css("display", "flex");
+                } else {
+                    if (this.config.addEdit) $edit.css("display", "flex");
+                    if (this.config.addDelete) $delete.css("display", "flex");
+                }
             } else {
+                $view.hide();
                 $edit.hide();
                 $delete.hide();
             }
@@ -130,12 +165,17 @@
         /* ================= POPUP ================= */
         openPopup: function (type) {
             const isEdit = type === "edit";
+            const isView = type === "view";
             const frameId = "formPopup_" + this.config.paramName;
 
-            if (window.JPopup && !isEdit) {
+            let popupTitle = "Add Data";
+            if (isEdit) popupTitle = "Edit Data";
+            else if (isView) popupTitle = "View Data";
+
+            if (window.JPopup && !isEdit && !isView) {
                 JPopup.create(
                     frameId,
-                    "Add Data",
+                    popupTitle,
                     "80%",
                     "80%"
                 );
@@ -147,8 +187,13 @@
                 this.config.appId +
                 "/" +
                 this.config.appVersion +
-                "/form/embed?_submitButtonLabel=" +
-                (isEdit ? "Save" : "Submit");
+                "/form/embed";
+
+            if (isView) {
+                url += "?_mode=view&_submitButtonLabel=";
+            } else {
+                url += "?_submitButtonLabel=" + (isEdit ? "Save" : "Submit");
+            }
 
             if (typeof UI !== "undefined" && typeof UI.userviewThemeParams === "function") {
                 url += UI.userviewThemeParams();
@@ -162,18 +207,18 @@
 
             let params = {
                 _json: this.config.crudFormJson,
-                _callback:
-                    this.config.paramName +
-                    (isEdit ? "_editDataCallback" : "_addDataCallback"),
+                _callback: isView
+                    ? ""
+                    : (this.config.paramName + (isEdit ? "_editDataCallback" : "_addDataCallback")),
                 _nonce: this.config.crudFormNonce,
-                _setting: "{}",
+                _setting: isView ? JSON.stringify({ readonly: "true" }) : "{}",
                 defaultValues: "{}"
             };
 
-            if (isEdit) {
+            if (isEdit || isView) {
                 const $select = this.select;
-                let $selectedOption = $select.find(":selected");
-                let encryptedId = $select.val();
+                let $selectedOption = $select.find("option:selected");
+                let encryptedId = this.getValue();
                 let plainId = $selectedOption.attr("data-id");
 
                 if (!plainId) plainId = encryptedId;
@@ -183,7 +228,7 @@
             }
 
             if (window.JPopup) {
-                JPopup.show(frameId, url, params, "", "80%", "80%");
+                JPopup.show(frameId, url, params, popupTitle, "80%", "80%");
             }
         },
 

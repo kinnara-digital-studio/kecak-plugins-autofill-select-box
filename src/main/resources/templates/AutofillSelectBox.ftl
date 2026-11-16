@@ -31,13 +31,13 @@
         </style>
 
         <div style="display:flex; align-items:center; gap:5px; margin-bottom:18px;">
-        <select class="js-select2" <#if element.properties.readonly! != 'true'>id="${elementParamName!}${element.properties.elementUniqueKey!}"</#if> name="${elementParamName!}" <#if element.properties.size?? && element.properties.size != ''> style="width:${element.properties.size!}%"</#if> <#if element.properties.multiple! == 'true'>multiple="multiple" data-role="none" data-native-menu="true"</#if> <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
-            <#if enableCrud?? && enableCrud == true && !(addEmptyOption?? && addEmptyOption)>
+        <select class="js-select2" id="${elementParamName!}${element.properties.elementUniqueKey!}" name="${elementParamName!}" <#if element.properties.size?? && element.properties.size != ''> style="width:${element.properties.size!}%"</#if> <#if element.properties.multiple! == 'true'>multiple="multiple" data-role="none" data-native-menu="true"</#if> <#if error??>class="form-error-cell"</#if> <#if element.properties.readonly! == 'true'> disabled </#if>>
+            <#if enableCrud?? && enableCrud == true && element.properties.readonly! != 'true' && !(addEmptyOption?? && addEmptyOption)>
                 <option value="__add_data__">+ Add Data</option>
             </#if>
             <#if element.properties.lazyLoading! != 'true' >
                 <#list options as option>
-                        <option value="${option.value!?html}" data-id="${option.plainValue!}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if> <#if element.properties.readonly! == 'true'>disabled</#if>>${option.label!?html}</option>
+                        <option value="${option.value!?html}" data-id="${option.plainValue!}" grouping="${option.grouping!?html}" <#if values?? && values?seq_contains(option.value!)>selected</#if>>${option.label!?html}</option>
                 </#list>
             <#else>
                 <#list options! as option>
@@ -46,13 +46,24 @@
                     </#if>
                 </#list>
             </#if>
-            <#if enableCrud?? && enableCrud == true && (addEmptyOption?? && addEmptyOption)>
+            <#if enableCrud?? && enableCrud == true && element.properties.readonly! != 'true' && (addEmptyOption?? && addEmptyOption)>
                 <option value="__add_data__">+ Add Data</option>
             </#if>
         </select>
 
-        <#-- Show Edit Icon -->
-        <#if addEdit?? && addEdit == true>
+        <#-- Show View Icon (Hanya jika Readonly & memiliki CRUD Binder) -->
+        <#if enableCrud?? && enableCrud == true && element.properties.readonly! == 'true'>
+            <button type="button"
+                id="${elementParamName!}_viewBtn"
+                style="display:none; padding:0 10px; cursor:pointer; height:28px; align-items:center; justify-content:center;" 
+                class="btn btn-info"
+                title="View Data"> 
+                <i class="fa fa-eye" aria-hidden="true"></i>
+            </button>
+        </#if>
+
+        <#-- Show Edit Icon (Hanya jika TIDAK Readonly) -->
+        <#if element.properties.readonly! != 'true' && addEdit?? && addEdit == true>
             <button type="button"
                 id="${elementParamName!}_editBtn"
                 style="display:none; padding:0 10px; cursor:pointer; height:28px; align-items:center; justify-content:center;" 
@@ -61,8 +72,8 @@
             </button>
         </#if>
 
-        <#-- Show Delete Icon-->
-        <#if addDelete?? && addDelete == true>
+        <#-- Show Delete Icon (Hanya jika TIDAK Readonly) -->
+        <#if element.properties.readonly! != 'true' && addDelete?? && addDelete == true>
             <button type="button"
                 id="${elementParamName!}_deleteBtn"
                 style="display:none; padding:0 10px; cursor:pointer; height:28px; align-items:center; justify-content:center;" 
@@ -79,7 +90,7 @@
 
     <#if element.properties.readonly! == 'true'>
         <#list values as value>
-            <input type="hidden" id="${elementParamName!}" name="${elementParamName!}" value="${value?html}" />
+            <input type="hidden" id="${elementParamName!}_hidden" name="${elementParamName!}" value="${value?html}" />
         </#list>
     </#if>
 
@@ -141,6 +152,7 @@
                 elementId : '${element.properties.id!}',
                 controlField : '${element.properties.controlField!}',
                 targetFieldAsReadonly: ${(element.properties.targetFieldAsReadonly! == 'true')?string('true', 'false')},
+                readonly: ${(element.properties.readonly! == 'true')?string('true', 'false')},
                 lazyMapping : ${(element.properties.lazyMapping! != 'true')?string('true', 'false')},
                 requestBody : ${requestBody!},
                 className : '${className}',
@@ -150,7 +162,7 @@
                 targets : ${fieldsMappingJson!}
             });
 
-            <#if element.properties.triggerOnPageLoad! == 'true'>
+            <#if element.properties.triggerOnPageLoad! == 'true' && element.properties.readonly! != 'true'>
                 setTimeout(() => $selectbox.change(), 1000);
             </#if>
 
@@ -161,6 +173,7 @@
                 appId : '${appId!}',
                 appVersion : '${appVersion!}',
                 className : '${className}',
+                readonly : ${(element.properties.readonly! == 'true')?string('true','false')},
 
                 /* ================= CRUD ================= */
                 enableCrud : ${(enableCrud!false)?string('true','false')},
